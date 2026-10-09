@@ -1,14 +1,16 @@
-# V1 지원 확장판 (1.0.1) 검증 기록 · 2026-10-10
+# V1.1 안정성·폴더 재생 (1.1.0) 검증 기록 · 2026-10-10
 
+- DS 일회성 채널 종료 시 파형 버퍼 범위 초과 수정. 사용자 New Super Mario Bros. (EMU) 98 mini2SF의 첫 6초와 탐색/음소거 AddressSanitizer 검사 통과.
+- 폴더 자연 숫자 정렬, 라이브러리 제외, GBS/NSF 예외, 자동 다음 파일 및 이전/다음 키·버튼 검사 통과.
 - Windows x64, VS2022/MSVC 19.44, CMake에서 Release 빌드 성공.
-- CTest 4/4 통과: 자체 음악 fixtures 생성, 실제 core/audio/channel 테스트, native UI layout 및 fullscreen/mute click 테스트.
+- CTest 5/5 통과: 자체 음악 fixtures 생성, 실제 core/audio/channel 테스트, native UI layout 및 fullscreen/mute click 테스트.
 - NSF/NSFE: 5개의 실제 voice, 두 트랙 전환, 채널 PCM 독립성, 무음 NOISE, 실제 mute 확인.
 - FDS NSF: 6 voice, FDS WAVE의 실제 PCM 에너지와 독립 파형 확인.
 - GBS: 4 voice, 실제 PCM 생성과 서로 다른 채널 확인.
 - SPC: 8 voice, 실제 PCM 생성과 서로 다른 두 voice 확인.
 - GBA/DS: 자체 ARM 드라이버의 GSF/miniGSF 및 2SF/mini2SF 실제 분리 채널 PCM, 메타데이터, 음소거, 탐색, 끝 검사.
 - N64/3DS: 자체 MIPS 드라이버 USF/miniUSF 및 PCM/DSP-ADPCM BCSTM/BCWAV 실제 독립 좌우 출력, 음소거, 탐색, 끝 검사.
-- 새 포맷의 상용 음악 덤프는 아직 검증하지 못했습니다. 전체 소스를 포함한 GPL-2.0-or-later 배포입니다.
+- DS 사용자 98 트랙은 제한된 구간을 검증했습니다. GBA/N64/3DS 상용 음악 덤프는 아직 검증하지 못했습니다. 전체 소스를 포함한 GPL-2.0-or-later 배포입니다.
 - 3DS 한글 파일명·경로의 PCM/DSP-ADPCM 열기 및 실제 오디오 출력 검사 통과.
 - 비정상/빈/잘린 파일 거부. NSFE 곡 이름·길이 메타데이터 확인.
 - 고정 48kHz 생성, 44.1/48/96kHz 출력 및 같은 소비 시각을 유지하는 레이트 전환 검사 통과.

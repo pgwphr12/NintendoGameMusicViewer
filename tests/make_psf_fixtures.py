@@ -24,6 +24,8 @@ program[0x800:]=bytes(int(110*math.sin(i*2*math.pi/32))&255 for i in range(256))
 rom=bytearray(0x204+len(program));rom[:12]=b'NGMVTEST    ';struct.pack_into('<IIII',rom,0x20,0x200,0x2000000,0x2000000,4);struct.pack_into('<IIII',rom,0x30,0x204,0x3800000,0x3800000,len(program));struct.pack_into('<I',rom,0x200,0xeafffffe);rom[0x204:]=program
 exe=struct.pack('<II',0,len(rom))+rom
 psf(root/'channels.2sf',0x24,exe,'title=Original DS channel test\ngame=Original 2SF fixture\nlength=0:03\n')
+one_shot=exe.replace(struct.pack('<I',0x8840007f),struct.pack('<I',0x9040007f))
+psf(root/'oneshot.2sf',0x24,one_shot,'title=Original DS one-shot regression\nlength=0:03\n')
 psf(root/'channels.2sflib',0x24,exe)
 psf(root/'channels.mini2sf',0x24,b'','_lib=channels.2sflib\ntitle=Mini DS library test\nlength=0:03\n')
 psf(root/'missing.minigsf',0x22,b'','_lib=absent.gsflib\n')
@@ -75,3 +77,9 @@ header=bytearray(0x140);header[:4]=b'CWAV';struct.pack_into('<HHIIH',header,4,0x
 struct.pack_into('<HHII',header,0x14,0x7000,0,0x40,len(info));struct.pack_into('<HHII',header,0x20,0x7001,0,0x140,8+sum(map(len,adpcm)));header[0x40:]=info
 (root/'channels.bcwav').write_bytes(header+b'DATA'+struct.pack('<I',8+sum(map(len,adpcm)))+b''.join(adpcm))
 (root/'invalid.bcstm').write_bytes(b'CSTM'+bytes(64))
+
+folder=root/'playlist-ds';folder.mkdir(exist_ok=True)
+for number in (1,2,10):
+    duration='0:00.35' if number == 1 else '0:03'
+    psf(folder/f'{number:02d} Track.mini2sf',0x24,b'',f'_lib=../channels.2sflib\ntitle=Playlist {number}\nlength={duration}\n')
+(folder/'ignore.2sflib').write_bytes(b'Not a playable track')

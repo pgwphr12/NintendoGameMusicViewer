@@ -1,4 +1,5 @@
 #pragma once
+#include "player/FolderPlaylist.hpp"
 #include "player/Player.hpp"
 #include <filesystem>
 #include <windows.h>
@@ -19,6 +20,10 @@ class Window {
     void releaseBuffer();
     Player player_;
     std::filesystem::path file_;
+    FolderPlaylist playlist_;
+    bool changing_ = false;
+    void selectFolder(size_t index, bool play);
+    void nextTrack(int direction, bool automatic = false);
     bool recording_ = false, fullscreen_ = false;
     int page_ = 0, windowSamples_ = 2048;
     int speedStep_ = 10;

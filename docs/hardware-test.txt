@@ -10,6 +10,8 @@ channels.gsf: actual channel PCM, mute/source retention, metadata, seek/fade PAS
 channels.minigsf: actual channel PCM, mute/source retention, metadata, seek/fade PASS
 channels.2sf: actual channel PCM, mute/source retention, metadata, seek/fade PASS
 channels.mini2sf: actual channel PCM, mute/source retention, metadata, seek/fade PASS
+Folder playlists, numbered ordering, library exclusion and internal-track exceptions: PASS
+DS one-shot channel completion and continued PSG playback: PASS
 channels.usf: real stereo PCM, independent outputs, metadata, mute/seek/end PASS
 channels.miniusf: real stereo PCM, independent outputs, metadata, mute/seek/end PASS
 channels.bcstm: real stereo PCM, independent outputs, metadata, mute/seek/end PASS

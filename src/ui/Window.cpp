@@ -122,15 +122,63 @@ void Window::report(const std::exception &e) {
     message_ = wide(e.what());
     MessageBoxW(hwnd_, message_.c_str(), L"Nintendo Game Music Viewer", MB_OK | MB_ICONERROR);
 }
+struct ChangingScope {
+    bool &value;
+    explicit ChangingScope(bool &flag) : value(flag) {
+        value = true;
+    }
+    ~ChangingScope() {
+        value = false;
+    }
+};
 void Window::open(const std::filesystem::path &p) {
+    if (changing_)
+        return;
     try {
+        ChangingScope guard(changing_);
+        auto playlist = FolderPlaylist::scan(p, identify(readMusicFile(p)));
         player_.open(p);
         file_ = p;
+        SetWindowTextW(hwnd_, (L"Nintendo Game Music Viewer · V1.1 — " + file_.filename().wstring()).c_str());
+        playlist_ = std::move(playlist);
         page_ = 0;
+        drag_ = -1;
+        message_.clear();
 
         InvalidateRect(hwnd_, nullptr, FALSE);
     } catch (const std::exception &e) {
         report(e);
+    }
+}
+void Window::selectFolder(size_t index, bool play) {
+    if (changing_ || index >= playlist_.files.size())
+        return;
+    ChangingScope guard(changing_);
+    const auto path = playlist_.files[index];
+    player_.open(path);
+    playlist_.current = index;
+    file_ = path;
+    SetWindowTextW(hwnd_, (L"Nintendo Game Music Viewer · V1.1 — " + file_.filename().wstring()).c_str());
+    page_ = 0;
+    drag_ = -1;
+    message_.clear();
+    if (play)
+        player_.play();
+    InvalidateRect(hwnd_, nullptr, FALSE);
+}
+void Window::nextTrack(int direction, bool automatic) {
+    if (changing_ || !player_.loaded())
+        return;
+    if (playlist_.active()) {
+        if (automatic && playlist_.current + 1 >= playlist_.files.size())
+            return;
+        auto size = playlist_.files.size();
+        size_t next =
+            direction > 0 ? (playlist_.current + 1) % size : (playlist_.current + size - 1) % size;
+        selectFolder(next, automatic || player_.playing());
+    } else if (!automatic && !player_.tracks().empty()) {
+        int size = int(player_.tracks().size());
+        player_.select((player_.track() + size + direction) % size);
     }
 }
 void Window::openDialog() {
@@ -153,20 +201,32 @@ void Window::tracksMenu() {
         return;
     auto menu = CreatePopupMenu();
     int index = 0;
-    for (const auto &t : player_.tracks()) {
-        std::wstring title =
-            std::to_wstring(index + 1) + L"  " +
-            (t.title.empty() ? L"Track " + std::to_wstring(index + 1) : wide(t.title));
-        AppendMenuW(menu, MF_STRING | (index == player_.track() ? MF_CHECKED : 0), 1000 + index,
-                    title.c_str());
-        index++;
-    }
+    if (playlist_.active()) {
+        for (const auto &path : playlist_.files) {
+            auto title = path.stem().wstring();
+            AppendMenuW(menu, MF_STRING | (size_t(index) == playlist_.current ? MF_CHECKED : 0),
+                        1000 + index, title.c_str());
+            ++index;
+        }
+    } else
+        for (const auto &t : player_.tracks()) {
+            std::wstring title =
+                std::to_wstring(index + 1) + L"  " +
+                (t.title.empty() ? L"Track " + std::to_wstring(index + 1) : wide(t.title));
+            AppendMenuW(menu, MF_STRING | (index == player_.track() ? MF_CHECKED : 0), 1000 + index,
+                        title.c_str());
+            index++;
+        }
     POINT p;
     GetCursorPos(&p);
     auto chosen = TrackPopupMenu(menu, TPM_RETURNCMD | TPM_NONOTIFY, p.x, p.y, 0, hwnd_, nullptr);
     DestroyMenu(menu);
-    if (chosen >= 1000)
-        player_.select(chosen - 1000);
+    if (chosen >= 1000) {
+        if (playlist_.active())
+            selectFolder(chosen - 1000, player_.playing());
+        else
+            player_.select(chosen - 1000);
+    }
 }
 void Window::rateMenu() {
     auto menu = CreatePopupMenu();
@@ -218,9 +278,15 @@ void Window::paint(HDC dc, int width, int height) {
     XFORM xf{FLOAT(scale_), 0, 0, FLOAT(scale_), FLOAT(offsetX_), FLOAT(offsetY_)};
     SetWorldTransform(dc, &xf);
     fill(dc, {0, 0, 1920, 1080}, RGB(12, 16, 24));
+    if (changing_) {
+        text(dc, recording_ ? L"Loading…" : L"불러오는 중…", 42, 22, 1810, 62, 46,
+             RGB(235, 240, 249));
+        RestoreDC(dc, saved);
+        return;
+    }
     const auto &tracks = player_.tracks();
     TrackInfo info;
-    if (player_.loaded())
+    if (player_.loaded() && size_t(player_.track()) < tracks.size())
         info = tracks[player_.track()];
     std::wstring title =
         player_.loaded() ? (info.title.empty() ? L"Track " + std::to_wstring(player_.track() + 1)
@@ -295,6 +361,8 @@ void Window::paint(HDC dc, int width, int height) {
     int lane = count ? (bottom - top) / int(count) : 100;
     for (size_t i = 0; i < count; i++) {
         size_t c = visible[first + i];
+        if (c >= waves.size() || c >= states.size() || c >= channels.size())
+            continue;
         int y = top + int(i) * lane;
         fill(dc, {32, y, 1888, y + lane - 8}, i % 2 ? RGB(16, 22, 32) : RGB(18, 24, 35));
         float peak = 0;
@@ -380,6 +448,8 @@ void Window::mouseMove(int x, int y) {
     InvalidateRect(hwnd_, nullptr, FALSE);
 }
 void Window::click(int x, int y) {
+    if (changing_)
+        return;
     int lx = int((x - offsetX_) / scale_), ly = int((y - offsetY_) / scale_);
     try {
         if (ly >= 163 && ly < 193 && lx >= 1550 && lx < 1842) {
@@ -430,8 +500,7 @@ void Window::click(int x, int y) {
             else if (lx >= 212 && lx < 367)
                 tracksMenu();
             else if (lx >= 382 && lx < 497 && player_.loaded())
-                player_.select((player_.track() + int(player_.tracks().size()) - 1) %
-                               int(player_.tracks().size()));
+                nextTrack(-1);
             else if (lx >= 512 && lx < 662) {
                 if (player_.playing())
                     player_.pause();
@@ -440,7 +509,7 @@ void Window::click(int x, int y) {
             } else if (lx >= 677 && lx < 792)
                 player_.stop();
             else if (lx >= 807 && lx < 922 && player_.loaded())
-                player_.select((player_.track() + 1) % int(player_.tracks().size()));
+                nextTrack(1);
             else if (lx >= 937 && lx < 1052)
                 player_.repeat(!player_.repeat());
             else if (lx >= 1067 && lx < 1267)
@@ -466,6 +535,8 @@ void Window::click(int x, int y) {
             if (slot >= first + count)
                 return;
             size_t i = visible[slot];
+            if (i >= states.size())
+                return;
             int localY = (ly - top) % lane;
             if (!recording_ && localY >= lane - 40 && localY < lane - 10) {
                 if (lx >= 54 && lx < 86) {
@@ -643,7 +714,13 @@ LRESULT CALLBACK Window::procedure(HWND w, UINT m, WPARAM a, LPARAM b) {
         self->hwnd_ = w;
         SetWindowLongPtrW(w, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(self));
     }
-    return self ? self->event(m, a, b) : DefWindowProcW(w, m, a, b);
+    try {
+        return self ? self->event(m, a, b) : DefWindowProcW(w, m, a, b);
+    } catch (const std::exception &e) {
+        if (self)
+            self->report(e);
+        return 0;
+    }
 }
 LRESULT Window::event(UINT m, WPARAM a, LPARAM b) {
     switch (m) {
@@ -655,19 +732,26 @@ LRESULT Window::event(UINT m, WPARAM a, LPARAM b) {
         RECT r;
         GetClientRect(hwnd_, &r);
         if (r.right && r.bottom) {
-            renderFrame(dc, r.right, r.bottom);
+            try {
+                renderFrame(dc, r.right, r.bottom);
+            } catch (...) {
+                EndPaint(hwnd_, &ps);
+                throw;
+            }
         }
         EndPaint(hwnd_, &ps);
         return 0;
     }
     case WM_TIMER:
         try {
-            if (player_.playing() && player_.ended()) {
+            if (!changing_ && player_.playing() && player_.ended()) {
                 bool repeat = player_.repeat();
                 player_.pause();
                 if (repeat) {
                     player_.stop();
                     player_.play();
+                } else if (playlist_.active() && playlist_.current + 1 < playlist_.files.size()) {
+                    nextTrack(1, true);
                 } else
                     message_ = L"Track ended";
             }
@@ -707,6 +791,8 @@ LRESULT Window::event(UINT m, WPARAM a, LPARAM b) {
         return 0;
     }
     case WM_KEYDOWN:
+        if (changing_)
+            return 0;
         try {
             if (a == 'O' && (GetKeyState(VK_CONTROL) & 0x8000))
                 openDialog();
@@ -730,10 +816,9 @@ LRESULT Window::event(UINT m, WPARAM a, LPARAM b) {
             else if (a == VK_PRIOR)
                 page_ = std::max(0, page_ - 1);
             else if (a == VK_LEFT && player_.loaded())
-                player_.select((player_.track() + int(player_.tracks().size()) - 1) %
-                               int(player_.tracks().size()));
+                nextTrack(-1);
             else if (a == VK_RIGHT && player_.loaded())
-                player_.select((player_.track() + 1) % int(player_.tracks().size()));
+                nextTrack(1);
         } catch (const std::exception &e) {
             report(e);
         }
@@ -764,8 +849,8 @@ int Window::run(HINSTANCE instance, const std::filesystem::path &initial,
     RegisterClassW(&wc);
     RECT r{0, 0, width, height};
     AdjustWindowRect(&r, WS_OVERLAPPEDWINDOW, FALSE);
-    hwnd_ = CreateWindowW(wc.lpszClassName, L"Nintendo Game Music Viewer · V1", WS_OVERLAPPEDWINDOW,
-                          screenshot.empty() ? CW_USEDEFAULT : -20000,
+    hwnd_ = CreateWindowW(wc.lpszClassName, L"Nintendo Game Music Viewer · V1.1",
+                          WS_OVERLAPPEDWINDOW, screenshot.empty() ? CW_USEDEFAULT : -20000,
                           screenshot.empty() ? CW_USEDEFAULT : -20000, r.right - r.left,
                           r.bottom - r.top, nullptr, nullptr, instance, this);
     if (!hwnd_)

@@ -35,3 +35,5 @@ LazyUSF from https://github.com/xbmc/audiodecoder.usf at 0df2a0a09fd8f68e3275c20
 vgmstream from https://github.com/vgmstream/vgmstream at 7dc938fa2f210943b37c7b6511852b516ef432ab. Archive vgmstream-7dc938fa2f210943b37c7b6511852b516ef432ab.zip SHA256 7618962679274a1d3b7da886d82365628ad15af55be8937db2f6df322643606f. Full compiled source third_party/vgmstream and COPYING are included. ISC-style license plus per-file notices. External codec libraries and player plugins are disabled; only native BCSTM/BCWAV header dispatch is exposed by the application. Build-generated version_auto.h is included with the source tree.
 
 The application CMake configuration enables UTF-8 compilation for libvgmstream and its upstream VGM_STDIO_UNICODE path support for streamfile_stdio.c on MSVC. Upstream source files are unchanged.
+
+V1.1 modifications dated 2026-10-10: SPU_Mix in vio2sf SPU.cpp now skips the terminal one-shot fetch position before waveform capture or mixing; see docs/DS-STABILITY.md. Original upstream notices and pinned archives are retained.

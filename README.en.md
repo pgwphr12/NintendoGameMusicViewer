@@ -1,4 +1,4 @@
-# Nintendo Game Music Viewer V1 (1.0.1)
+# Nintendo Game Music Viewer V1.1 (1.1.0)
 
 A new C++17 native Windows game-music player with real independent channel scopes. No Mesen or earlier NTSC application code is included. No game ROM execution or game-screen functionality is exposed. The separate music core necessarily simulates the hardware needed to execute music drivers.
 
@@ -74,4 +74,10 @@ GBA runs synchronized full-mix plus six isolated cores at 48kHz (pulse 1/2, wave
 
 N64 displays final left/right outputs, and 3DS displays stored stream audio channels, not individual instruments. Native PCM/DSP-ADPCM and other built-in vgmstream codecs are available; external FFmpeg/Vorbis/MP3 codecs are disabled. 3DS game ROMs, BCSAR archives, BCSEQ sequences and 3SF are not supported. These are specific music-format implementations, not a guarantee of every dump/driver/codec for each console.
 
-Originally authored ARM/MIPS music drivers and PCM/DSP-ADPCM streams test actual decoding, independent PCM, source-preserving mute, metadata, seek/end, audio device and native UI paths. Commercial dumps for newly added systems were not supplied and remain unverified. Complete corresponding application/core sources, modified files, pinned original archives and license texts are included. Application license: GPL-2.0-or-later.
+Originally authored ARM/MIPS music drivers and PCM/DSP-ADPCM streams test actual decoding, independent PCM, source-preserving mute, metadata, seek/end, audio device and native UI paths. Commercial GBA/N64/3DS dumps remain unverified; see the V1.1 section for the supplied DS set. Complete corresponding application/core sources, modified files, pinned original archives and license texts are included. Application license: GPL-2.0-or-later.
+
+## V1.1 stability and folder playback
+
+Fixed an out-of-range DS waveform-capture write when a one-shot PCM/ADPCM channel finishes. AddressSanitizer checks passed for the first six seconds plus seek/mute in 98 user-provided New Super Mario Bros. (EMU) mini2SF tracks. Entire songs and every music dump remain unverified. See docs/DS-STABILITY.md.
+
+SPC, GSF/miniGSF, 2SF/mini2SF, USF/miniUSF and BCSTM/BCWAV use same-system music files from the current folder, sorted by filename with natural numeric ordering. Tracks, Previous/Next and Left/Right select folder files. Subfolders and music libraries are excluded. Manual selection keeps playback/paused state. Known-duration tracks automatically advance to the next file; the final file stops. Manual navigation wraps. Repeat repeats the current track. Unknown-duration PSF tracks still need manual navigation. NSF/NSFE/GBS retain internal track selection.

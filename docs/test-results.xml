@@ -1,19 +1,19 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <testsuite name="Win32-MSBuild"
-	tests="4"
+	tests="5"
 	failures="0"
 	disabled="0"
 	skipped="0"
 	hostname="[NON-UTF-8-BYTE-0xB9][NON-UTF-8-BYTE-0xDA][NON-UTF-8-BYTE-0xC7]϶[NON-UTF-8-BYTE-0xF7]"
 	time="27"
-	timestamp="2026-10-10T01:41:10"
+	timestamp="2026-10-10T01:59:37"
 	>
-	<testcase name="fixtures" classname="fixtures" time="0.232355" status="run">
+	<testcase name="fixtures" classname="fixtures" time="0.203782" status="run">
 		<properties/>
 		<system-out>Generated original NSF, NSFE, FDS, GBS and SPC fixtures.
 </system-out>
 	</testcase>
-	<testcase name="core_audio_channels" classname="core_audio_channels" time="8.73242" status="run">
+	<testcase name="core_audio_channels" classname="core_audio_channels" time="7.9334" status="run">
 		<properties/>
 		<system-out>channels.nsf voices=5 energy=9.91188
 channels.nsfe voices=5 energy=9.91188
@@ -27,14 +27,14 @@ channels.gsf: actual channel PCM, mute/source retention, metadata, seek/fade PAS
 channels.minigsf: actual channel PCM, mute/source retention, metadata, seek/fade PASS
 channels.2sf: actual channel PCM, mute/source retention, metadata, seek/fade PASS
 channels.mini2sf: actual channel PCM, mute/source retention, metadata, seek/fade PASS
+Folder playlists, numbered ordering, library exclusion and internal-track exceptions: PASS
+DS one-shot channel completion and continued PSG playback: PASS
 channels.usf: real stereo PCM, independent outputs, metadata, mute/seek/end PASS
-channels.miniusf: real stereo PCM, independent outputs, metadata, mute/seek/end PASS
-channels.bcstm: real stereo PCM, independent outputs, metadata, mute/seek/end PASS
-channels.bcwav: real stereo PCM, independent outputs, me...
+channels.miniusf: real stereo PCM, independent outputs, metadata, mut...
 [This part of the test output was removed since it exceeds the threshold of 1024 bytes.]
 </system-out>
 	</testcase>
-	<testcase name="native_ui_layout" classname="native_ui_layout" time="14.4727" status="run">
+	<testcase name="native_ui_layout" classname="native_ui_layout" time="14.454" status="run">
 		<properties/>
 		<system-out>1280x720, fds.nsf, recording=False: native frame and layout PASS
 1600x900, channels.gbs, recording=False: native frame and layout PASS
@@ -49,11 +49,16 @@ channels.bcwav: real stereo PCM, independent outputs, me...
 1280x720, channels.bcwav, recording=True: native frame and layout PASS
 </system-out>
 	</testcase>
-	<testcase name="native_ui_clicks" classname="native_ui_clicks" time="3.87865" status="run">
+	<testcase name="native_ui_clicks" classname="native_ui_clicks" time="3.90384" status="run">
 		<properties/>
 		<system-out>Fullscreen restore + channel click case 1: mute/unmute and hidden-DMC index mapping PASS
 Fullscreen restore + channel click case 2: mute/unmute and hidden-DMC index mapping PASS
 Fullscreen restore + channel click case 3: mute/unmute and hidden-DMC index mapping PASS
+</system-out>
+	</testcase>
+	<testcase name="native_folder_playlist" classname="native_folder_playlist" time="1.35346" status="run">
+		<properties/>
+		<system-out>DS automatic folder advance, natural order, previous/next keys/buttons and wrap and page/recording repaint: PASS
 </system-out>
 	</testcase>
 </testsuite>

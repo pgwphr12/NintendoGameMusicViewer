@@ -1,5 +1,6 @@
 #include "audio/Resampler.hpp"
 #include "core/IMusicBackend.hpp"
+#include "player/FolderPlaylist.hpp"
 #include "player/Player.hpp"
 #include "visualizer/Envelope.hpp"
 #include <chrono>
@@ -177,11 +178,53 @@ static void psfTests(const std::filesystem::path &root) {
                 "New PSF player starved or failed to advance");
     }
 }
+static void folderPlaylistTests(const std::filesystem::path &root) {
+    auto file = root / "playlist-ds/02 Track.mini2sf";
+    auto playlist = FolderPlaylist::scan(file, Format::TwoSf);
+    require(playlist.files.size() == 3 && playlist.current == 1,
+            "Folder track selection or library exclusion failed");
+    require(playlist.files[0].filename() == "01 Track.mini2sf" &&
+                playlist.files[2].filename() == "10 Track.mini2sf",
+            "Folder ordering failed");
+    require(!FolderPlaylist::scan(root / "channels.gbs", Format::Gbs).active(),
+            "GBS must use internal tracks");
+    require(!FolderPlaylist::scan(root / "channels.nsf", Format::Nsf).active(),
+            "NSF must use internal tracks");
+    for (auto format : {Format::Spc, Format::Gsf, Format::Usf, Format::Bcstm, Format::Bcwav}) {
+        auto file = root / (format == Format::Spc     ? "channels.spc"
+                            : format == Format::Gsf   ? "channels.gsf"
+                            : format == Format::Usf   ? "channels.usf"
+                            : format == Format::Bcstm ? "channels.bcstm"
+                                                      : "channels.bcwav");
+        auto list = FolderPlaylist::scan(file, format);
+        require(list.active() && list.current < list.files.size() &&
+                    list.files[list.current] == std::filesystem::absolute(file),
+                "Folder system unavailable");
+        for (auto path : list.files)
+            require(path.extension().wstring().find(L"lib") == std::wstring::npos,
+                    "Music library entered playlist");
+    }
+    std::cout << "Folder playlists, numbered ordering, library exclusion and internal-track "
+                 "exceptions: PASS\n";
+}
+static void dsOneShotTest(const std::filesystem::path &root) {
+    auto file = root / "oneshot.2sf";
+    auto backend = makeBackend(readMusicFile(file), file);
+    AudioBlock block;
+    backend->render(512, block);
+    require(energy(block.voices[0]) > 1e-5, "One-shot PCM did not start");
+    for (int i = 0; i < 60; i++)
+        backend->render(512, block);
+    require(energy(block.voices[0]) == 0 && energy(block.mix) > 1e-5,
+            "One-shot end damaged other channels");
+    std::cout << "DS one-shot channel completion and continued PSG playback: PASS\n";
+}
 static void outputFormatTests(const std::filesystem::path &root) {
     for (auto ext : {"bcstm", "bcwav"}) {
         auto original = root / (std::string("channels.") + ext);
         auto unicode = root / std::filesystem::u8path(std::string(u8"한글 음악.") + ext);
-        std::filesystem::copy_file(original, unicode, std::filesystem::copy_options::overwrite_existing);
+        std::filesystem::copy_file(original, unicode,
+                                   std::filesystem::copy_options::overwrite_existing);
         auto backend = makeBackend(readMusicFile(unicode), unicode);
         AudioBlock block;
         backend->render(512, block);
@@ -519,6 +562,8 @@ int main(int argc, char **argv) {
         std::filesystem::path root = argv[1];
         formatTests(root);
         psfTests(root);
+        folderPlaylistTests(root);
+        dsOneShotTest(root);
         outputFormatTests(root);
         bufferTests();
         levelTests(root);

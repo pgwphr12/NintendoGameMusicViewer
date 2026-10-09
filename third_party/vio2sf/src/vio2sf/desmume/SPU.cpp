@@ -798,6 +798,9 @@ static FORCEINLINE void FetchPSGData(SPUInterpolationMode INTERPOLATE_MODE, chan
 
 FORCEINLINE static void SPU_Mix(int CHANNELS, SPU_struct* SPU, channel_struct *chan, s32 data)
 {
+    // A one-shot fetch can finish the channel and move bufpos to buflength.
+    // There is no sample to mix/capture at that position.
+    if (SPU->bufpos >= SPU->buflength) return;
     if (SPU->state->viewer_pcm) {
         s32 value = spumuldiv7(data, chan->vol) >> chan->datashift;
         const u8 master = T1ReadByte(SPU->state->MMU->ARM7_REG, 0x500) & 0x7F;
