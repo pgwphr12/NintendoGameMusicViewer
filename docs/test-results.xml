@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="Win32-MSBuild"
+	tests="4"
+	failures="0"
+	disabled="0"
+	skipped="0"
+	hostname="[NON-UTF-8-BYTE-0xB9][NON-UTF-8-BYTE-0xDA][NON-UTF-8-BYTE-0xC7]϶[NON-UTF-8-BYTE-0xF7]"
+	time="27"
+	timestamp="2026-10-10T01:41:10"
+	>
+	<testcase name="fixtures" classname="fixtures" time="0.232355" status="run">
+		<properties/>
+		<system-out>Generated original NSF, NSFE, FDS, GBS and SPC fixtures.
+</system-out>
+	</testcase>
+	<testcase name="core_audio_channels" classname="core_audio_channels" time="8.73242" status="run">
+		<properties/>
+		<system-out>channels.nsf voices=5 energy=9.91188
+channels.nsfe voices=5 energy=9.91188
+channels.gbs voices=4 energy=6.36701
+channels.spc voices=8 energy=0.0346856
+fds.nsf voices=6 energy=7.03672
+fds-banked.nsf voices=6 energy=7.03996
+fds-banked.nsfe voices=6 energy=7.03996
+Format opening, metadata, track switching, actual audio, FDS, hardware names, mute and independent channel buffers: PASS
+channels.gsf: actual channel PCM, mute/source retention, metadata, seek/fade PASS
+channels.minigsf: actual channel PCM, mute/source retention, metadata, seek/fade PASS
+channels.2sf: actual channel PCM, mute/source retention, metadata, seek/fade PASS
+channels.mini2sf: actual channel PCM, mute/source retention, metadata, seek/fade PASS
+channels.usf: real stereo PCM, independent outputs, metadata, mute/seek/end PASS
+channels.miniusf: real stereo PCM, independent outputs, metadata, mute/seek/end PASS
+channels.bcstm: real stereo PCM, independent outputs, metadata, mute/seek/end PASS
+channels.bcwav: real stereo PCM, independent outputs, me...
+[This part of the test output was removed since it exceeds the threshold of 1024 bytes.]
+</system-out>
+	</testcase>
+	<testcase name="native_ui_layout" classname="native_ui_layout" time="14.4727" status="run">
+		<properties/>
+		<system-out>1280x720, fds.nsf, recording=False: native frame and layout PASS
+1600x900, channels.gbs, recording=False: native frame and layout PASS
+1920x1080, fds.nsf, recording=True: native frame and layout PASS
+2560x1440, channels.spc, recording=False: native frame and layout PASS
+3840x2160, channels.spc, recording=True: native frame and layout PASS
+4K repeated rendering: GDI object count stable PASS
+1280x720, channels.minigsf, recording=False: native frame and layout PASS
+1920x1080, channels.mini2sf, recording=True: native frame and layout PASS
+1280x720, channels.miniusf, recording=False: native frame and layout PASS
+1920x1080, channels.bcstm, recording=False: native frame and layout PASS
+1280x720, channels.bcwav, recording=True: native frame and layout PASS
+</system-out>
+	</testcase>
+	<testcase name="native_ui_clicks" classname="native_ui_clicks" time="3.87865" status="run">
+		<properties/>
+		<system-out>Fullscreen restore + channel click case 1: mute/unmute and hidden-DMC index mapping PASS
+Fullscreen restore + channel click case 2: mute/unmute and hidden-DMC index mapping PASS
+Fullscreen restore + channel click case 3: mute/unmute and hidden-DMC index mapping PASS
+</system-out>
+	</testcase>
+</testsuite>

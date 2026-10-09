@@ -1,0 +1,44 @@
+name: Windows build and test
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  windows-x64:
+    runs-on: windows-2022
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - name: Configure (VS2022 + CMake + Python provided by runner)
+        run: cmake -S . -B build -G "Visual Studio 17 2022" -A x64 -DBUILD_TESTING=ON
+      - name: Build
+        run: cmake --build build --config Release --parallel 4
+      - name: Test actual music cores and audio callbacks
+        run: ctest --test-dir build -C Release --output-on-failure --output-junit test-results.xml
+      - name: Install portable application
+        run: cmake --install build --config Release --component Runtime --prefix dist/NintendoGameMusicViewer
+      - name: Package sources, replaceable core and licenses
+        shell: pwsh
+        run: |
+          Copy-Item -LiteralPath src,tests,third_party,docs,.github,CMakeLists.txt,.clang-format -Destination dist/NintendoGameMusicViewer -Recurse
+          New-Item -ItemType Directory -Path dist/NintendoGameMusicViewer/samples -Force | Out-Null
+          Copy-Item build/fixtures/channels.nsf dist/NintendoGameMusicViewer/samples/Original-Channel-Test.nsf
+          Copy-Item build/fixtures/fds.nsf dist/NintendoGameMusicViewer/samples/Original-FDS-Test.nsf
+          Copy-Item build/fixtures/channels.gsf dist/NintendoGameMusicViewer/samples/Original-GBA-Test.gsf
+          Copy-Item build/fixtures/channels.2sf dist/NintendoGameMusicViewer/samples/Original-DS-Test.2sf
+          Copy-Item build/fixtures/channels.usf dist/NintendoGameMusicViewer/samples/Original-N64-Test.usf
+          Copy-Item build/fixtures/channels.bcstm dist/NintendoGameMusicViewer/samples/Original-3DS-PCM-Test.bcstm
+          Copy-Item build/fixtures/channels.bcwav dist/NintendoGameMusicViewer/samples/Original-3DS-ADPCM-Test.bcwav
+          Compress-Archive -Path dist/NintendoGameMusicViewer -DestinationPath NintendoGameMusicViewer-Windows-x64.zip
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: NintendoGameMusicViewer-Windows-x64
+          path: NintendoGameMusicViewer-Windows-x64.zip
+          if-no-files-found: error
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        if: always()
+        with:
+          name: Test-results
+          path: build/test-results.xml
+          if-no-files-found: ignore
