@@ -2,6 +2,7 @@
 #include "player/FolderPlaylist.hpp"
 #include "player/Player.hpp"
 #include <filesystem>
+#include <deque>
 #include <windows.h>
 namespace ngmv {
 class Window {
@@ -22,6 +23,7 @@ class Window {
     std::filesystem::path file_;
     FolderPlaylist playlist_;
     bool changing_ = false;
+    std::deque<std::wstring> pendingFiles_;
     void selectFolder(size_t index, bool play);
     void nextTrack(int direction, bool automatic = false);
     bool recording_ = false, fullscreen_ = false;
@@ -42,7 +44,7 @@ class Window {
     void click(int, int);
     void mouseMove(int, int);
     void openDialog();
-    void open(const std::filesystem::path &);
+    bool open(const std::filesystem::path &);
     void tracksMenu();
     void rateMenu();
     void toggleFullscreen();
@@ -53,7 +55,7 @@ class Window {
     ~Window();
     int run(HINSTANCE, const std::filesystem::path &initial = {},
             const std::filesystem::path &screenshot = {}, int width = 1280, int height = 720,
-            bool recording = false);
+            bool recording = false, bool playInitial = false);
 };
 std::wstring wide(const std::string &s);
 } // namespace ngmv

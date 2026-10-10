@@ -9,21 +9,21 @@ parser.add_argument('--cmake',default='cmake')
 args=parser.parse_args()
 source=Path(__file__).resolve().parent.parent
 output=args.output.resolve();output.mkdir(parents=True,exist_ok=True)
-runtime=output/'NintendoGameMusicViewer-V1.3-Windows-x64'
+runtime=output/'NintendoGameMusicViewer-V1.3.1-Windows-x64'
 subprocess.run([args.cmake,'--install',str(args.build.resolve()),'--config','Release','--component','Runtime','--prefix',str(runtime)],check=True)
 assert (runtime/'NintendoGameMusicViewer.exe').is_file() and (runtime/'gme.dll').is_file()
 assert not any((runtime/d).exists() for d in ['src','third_party','tests','CMakeLists.txt']), 'Runtime must not contain source'
 assert not list(runtime.rglob('*.pdb')) and not list(runtime.rglob('*asan*')), 'Diagnostic artifacts in runtime'
 dirs={'src','tests','third_party','docs','licenses','samples','.github','tools'}
 files={'CMakeLists.txt','.clang-format','.gitignore','LICENSE','README.md','README.en.md','SOURCE.md','THIRD_PARTY_NOTICES.md','VALIDATION.md'}
-for folder,name in [(runtime,'NintendoGameMusicViewer-V1.3-Windows-x64.zip'),(source,'NintendoGameMusicViewer-V1.3-source.zip')]:
+for folder,name in [(runtime,'NintendoGameMusicViewer-V1.3.1-Windows-x64.zip'),(source,'NintendoGameMusicViewer-V1.3.1-source.zip')]:
     target=output/name
     with zipfile.ZipFile(target,'w',zipfile.ZIP_DEFLATED,compresslevel=6) as z:
         for f in sorted(folder.rglob('*')):
             rel=f.relative_to(folder)
             if not f.is_file() or '__pycache__' in rel.parts:continue
             if folder==source and rel.parts[0] not in dirs|files:continue
-            prefix=folder.name if folder==runtime else 'NintendoGameMusicViewer-V1.3-source'
+            prefix=folder.name if folder==runtime else 'NintendoGameMusicViewer-V1.3.1-source'
             z.write(f,Path(prefix)/rel)
     with zipfile.ZipFile(target) as z:
         assert z.testzip() is None

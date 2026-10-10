@@ -1,8 +1,8 @@
-# Corresponding source · V1.3 (1.3.0)
+# Corresponding source · V1.3.1 (1.3.1)
 
 This application is GPL-2.0-or-later. LICENSE and third-party license notices accompany the runtime.
 
-Complete corresponding source: **NintendoGameMusicViewer-V1.3-source.zip**. It contains all application/core sources, original dependency archives, modifications, build files, tests, samples and license texts. The runtime archive is **NintendoGameMusicViewer-V1.3-Windows-x64.zip** and does not contain source code.
+Complete corresponding source: **NintendoGameMusicViewer-V1.3.1-source.zip**. It contains all application/core sources, original dependency archives, modifications, build files, tests, samples and license texts. The runtime archive is **NintendoGameMusicViewer-V1.3.1-Windows-x64.zip** and does not contain source code.
 
 When redistributing this build, provide both archives together with the matching version. This file is not a substitute for supplying corresponding source. Rebuild instructions are in README.en.md / README.md inside the source archive. The LGPL gme.dll remains replaceable.
 

@@ -1,4 +1,5 @@
 #include "Window.hpp"
+#include "app/WindowsIntegration.hpp"
 #include "ChannelLayout.hpp"
 #include "visualizer/Envelope.hpp"
 #include <algorithm>
@@ -134,24 +135,26 @@ struct ChangingScope {
         value = false;
     }
 };
-void Window::open(const std::filesystem::path &p) {
+bool Window::open(const std::filesystem::path &p) {
     if (changing_)
-        return;
+        return false;
     try {
         ChangingScope guard(changing_);
         auto playlist = FolderPlaylist::scan(p, identify(readMusicFile(p)));
         player_.open(p);
         file_ = p;
         SetWindowTextW(
-            hwnd_, (L"Nintendo Game Music Viewer · V1.3 — " + file_.filename().wstring()).c_str());
+            hwnd_, (L"Nintendo Game Music Viewer · V1.3.1 — " + file_.filename().wstring()).c_str());
         playlist_ = std::move(playlist);
 
         drag_ = -1;
         message_.clear();
 
         InvalidateRect(hwnd_, nullptr, FALSE);
+        return true;
     } catch (const std::exception &e) {
         report(e);
+        return false;
     }
 }
 void Window::selectFolder(size_t index, bool play) {
@@ -163,7 +166,7 @@ void Window::selectFolder(size_t index, bool play) {
     playlist_.current = index;
     file_ = path;
     SetWindowTextW(hwnd_,
-                   (L"Nintendo Game Music Viewer · V1.3 — " + file_.filename().wstring()).c_str());
+                   (L"Nintendo Game Music Viewer · V1.3.1 — " + file_.filename().wstring()).c_str());
 
     drag_ = -1;
     message_.clear();
@@ -448,7 +451,7 @@ void Window::paint(HDC dc, int width, int height) {
     if (!recording_ && player_.error().empty())
         text(dc,
              L"Ctrl+O 열기  ·  Space 재생/일시정지  ·  ←/→ Track 전환  ·  F9 녹화 화면  ·  "
-             L"F11 전체 화면  ·  Esc 복원  ·  +/- 시간축  ·  A 자동재생",
+             L"F10 기본 앱  ·  F11 전체 화면  ·  Esc 복원  ·  +/- 시간축  ·  A 자동재생",
              42, 1040, 1840, 30, 18, RGB(112, 130, 153));
     if (!player_.error().empty())
         text(dc, (recording_ ? L"Error: " : L"오류: ") + wide(player_.error()), 42, 1048, 1800, 28,
@@ -756,6 +759,44 @@ LRESULT CALLBACK Window::procedure(HWND w, UINT m, WPARAM a, LPARAM b) {
 }
 LRESULT Window::event(UINT m, WPARAM a, LPARAM b) {
     switch (m) {
+    case WM_COPYDATA: {
+        std::wstring path;
+        if (pendingFiles_.size() >= 32 || !desktop::decodeRequest(reinterpret_cast<COPYDATASTRUCT *>(b), path))
+            return FALSE;
+        pendingFiles_.push_back(std::move(path));
+        PostMessageW(hwnd_, desktop::OpenQueuedFile, 0, 0);
+        return TRUE;
+    }
+    case desktop::OpenQueuedFile:
+        if (changing_) {
+            SetTimer(hwnd_, 3, 100, nullptr);
+            return 0;
+        }
+        if (!pendingFiles_.empty()) {
+            auto path = std::move(pendingFiles_.front());
+            pendingFiles_.pop_front();
+            ShowWindow(hwnd_, IsIconic(hwnd_) ? SW_RESTORE : SW_SHOW);
+            if (!SetForegroundWindow(hwnd_)) {
+                FLASHWINFO flash{sizeof(FLASHWINFO), hwnd_, FLASHW_TRAY, 3, 0};
+                FlashWindowEx(&flash);
+            }
+            try {
+                if (!path.empty() && open(path)) player_.play();
+            } catch (const std::exception &e) { report(e); }
+            if (!pendingFiles_.empty()) PostMessageW(hwnd_, desktop::OpenQueuedFile, 0, 0);
+        }
+        return 0;
+    case desktop::AskDefaultApps:
+        try { desktop::defaultAppsPrompt(hwnd_, false, recording_); }
+        catch (const std::exception &e) { report(e); }
+        return 0;
+    case WM_SYSCOMMAND:
+        if ((a & 0xfff0) == desktop::DefaultAppsCommand) {
+            try { desktop::defaultAppsPrompt(hwnd_, true, recording_); }
+            catch (const std::exception &e) { report(e); }
+            return 0;
+        }
+        break;
     case WM_ERASEBKGND:
         return 1;
     case WM_PAINT: {
@@ -775,6 +816,11 @@ LRESULT Window::event(UINT m, WPARAM a, LPARAM b) {
         return 0;
     }
     case WM_TIMER:
+        if (a == 3) {
+            KillTimer(hwnd_, 3);
+            PostMessageW(hwnd_, desktop::OpenQueuedFile, 0, 0);
+            return 0;
+        }
         try {
             if (!changing_ && player_.playing() && player_.ended()) {
                 bool repeat = player_.repeat();
@@ -836,8 +882,14 @@ LRESULT Window::event(UINT m, WPARAM a, LPARAM b) {
                     player_.play();
             } else if (a == 'A')
                 autoplay_ = !autoplay_;
-            else if (a == VK_F9)
+            else if (a == VK_F9) {
                 recording_ = !recording_;
+                ModifyMenuW(GetSystemMenu(hwnd_, FALSE), desktop::DefaultAppsCommand,
+                    MF_BYCOMMAND | MF_STRING, desktop::DefaultAppsCommand,
+                    recording_ ? L"Default apps... (F10)" : L"기본 앱 설정... (F10)");
+            }
+            else if (a == VK_F10)
+                desktop::defaultAppsPrompt(hwnd_, true, recording_);
             else if (a == VK_F11)
                 toggleFullscreen();
             else if (a == VK_ESCAPE && fullscreen_)
@@ -862,30 +914,44 @@ LRESULT Window::event(UINT m, WPARAM a, LPARAM b) {
         return 0;
     }
     case WM_DESTROY:
+        RemovePropW(hwnd_, desktop::InstanceProperty);
         PostQuitMessage(0);
         return 0;
     }
     return DefWindowProcW(hwnd_, m, a, b);
 }
 int Window::run(HINSTANCE instance, const std::filesystem::path &initial,
-                const std::filesystem::path &screenshot, int width, int height, bool recording) {
+                const std::filesystem::path &screenshot, int width, int height, bool recording, bool playInitial) {
     SetProcessDPIAware();
     recording_ = recording;
     WNDCLASSW wc{};
     wc.hInstance = instance;
-    wc.lpszClassName = L"NintendoGameMusicViewerWindow";
+    wc.lpszClassName = desktop::WindowClass;
     wc.lpfnWndProc = procedure;
     wc.hCursor = LoadCursorW(nullptr, IDC_ARROW);
-    wc.hIcon = LoadIconW(nullptr, IDI_APPLICATION);
+    wc.hIcon = static_cast<HICON>(LoadImageW(instance, MAKEINTRESOURCEW(101), IMAGE_ICON,
+                                            GetSystemMetrics(SM_CXICON), GetSystemMetrics(SM_CYICON), LR_SHARED));
     RegisterClassW(&wc);
     RECT r{0, 0, width, height};
     AdjustWindowRect(&r, WS_OVERLAPPEDWINDOW, FALSE);
-    hwnd_ = CreateWindowW(wc.lpszClassName, L"Nintendo Game Music Viewer · V1.3",
+    hwnd_ = CreateWindowW(wc.lpszClassName, L"Nintendo Game Music Viewer · V1.3.1",
                           WS_OVERLAPPEDWINDOW, screenshot.empty() ? CW_USEDEFAULT : -20000,
                           screenshot.empty() ? CW_USEDEFAULT : -20000, r.right - r.left,
                           r.bottom - r.top, nullptr, nullptr, instance, this);
     if (!hwnd_)
         throw std::runtime_error("Cannot create window.");
+    SendMessageW(hwnd_, WM_SETICON, ICON_BIG, reinterpret_cast<LPARAM>(wc.hIcon));
+    auto smallIcon = LoadImageW(instance, MAKEINTRESOURCEW(101), IMAGE_ICON,
+                              GetSystemMetrics(SM_CXSMICON), GetSystemMetrics(SM_CYSMICON), LR_SHARED);
+    SendMessageW(hwnd_, WM_SETICON, ICON_SMALL, reinterpret_cast<LPARAM>(smallIcon));
+    if (screenshot.empty()) {
+        if (!SetPropW(hwnd_, desktop::InstanceProperty, reinterpret_cast<HANDLE>(desktop::instanceToken())))
+            throw std::runtime_error("Cannot initialize file handoff.");
+        auto menu = GetSystemMenu(hwnd_, FALSE);
+        AppendMenuW(menu, MF_SEPARATOR, 0, nullptr);
+        AppendMenuW(menu, MF_STRING, desktop::DefaultAppsCommand,
+                    recording_ ? L"Default apps... (F10)" : L"기본 앱 설정... (F10)");
+    }
     DragAcceptFiles(hwnd_, TRUE);
     ShowWindow(hwnd_, SW_SHOW);
     if (!screenshot.empty()) {
@@ -893,8 +959,9 @@ int Window::run(HINSTANCE instance, const std::filesystem::path &initial,
                      SWP_NOZORDER | SWP_NOMOVE);
     }
     SetTimer(hwnd_, 1, 16, nullptr);
-    if (!initial.empty())
-        open(initial);
+    if (!initial.empty() && open(initial) && playInitial)
+        player_.play();
+    if (screenshot.empty()) PostMessageW(hwnd_, desktop::AskDefaultApps, 0, 0);
     if (!screenshot.empty()) {
         if (player_.loaded())
             player_.play();

@@ -1,12 +1,14 @@
 #include "ui/Window.hpp"
+#include "WindowsIntegration.hpp"
 #include <shellapi.h>
+#include <shobjidl.h>
 int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int) {
     try {
         int count = 0;
         LPWSTR *raw = CommandLineToArgvW(GetCommandLineW(), &count);
         std::filesystem::path input, screenshot;
         int width = 1280, height = 720;
-        bool recording = false;
+        bool recording = false, playInitial = false;
         if (count > 1) {
             if (std::wstring(raw[1]) == L"--snapshot" && count > 3) {
                 input = raw[2];
@@ -25,12 +27,18 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int) {
                             throw std::runtime_error("Snapshot size outside allowed range");
                     }
                 }
+            } else if (std::wstring(raw[1]) == L"--play" && count > 2) {
+                input = raw[2];
+                playInitial = true;
             } else
                 input = raw[1];
         }
         LocalFree(raw);
+        ngmv::desktop::InstanceGate gate;
+        if (screenshot.empty() && gate.forwardOrBecomePrimary(input)) return 0;
+        SetCurrentProcessExplicitAppUserModelID(L"NintendoGameMusicViewer");
         ngmv::Window app;
-        return app.run(instance, input, screenshot, width, height, recording);
+        return app.run(instance, input, screenshot, width, height, recording, playInitial);
     } catch (const std::exception &e) {
         MessageBoxW(nullptr, ngmv::wide(e.what()).c_str(), L"Nintendo Game Music Viewer",
                     MB_ICONERROR);

@@ -1,8 +1,14 @@
-# Nintendo Game Music Viewer V1.3 (1.3.0)
+# Nintendo Game Music Viewer V1.3.1 (1.3.1)
 
 A new C++17 native Windows game-music player with real independent channel scopes. No Mesen or earlier NTSC application code is included. No game ROM execution or game-screen functionality is exposed. The separate music core necessarily simulates the hardware needed to execute music drivers.
 
 Extract the entire portable package and run NintendoGameMusicViewer.exe on Windows 10/11 x64. Keep gme.dll beside the executable. No .NET, Python, CMake, Visual Studio or FFmpeg installation is needed to run the player.
+
+V1.3.1 embeds an original waveform/music-note icon. On startup, an optional prompt offers to register all 14 supported file types for the current Windows user and open Windows Default apps settings. **Complete the default-app choice in Windows Settings.** No administrator permission is required. Choose Not now or Don't ask again; F10 or the title-bar icon menu opens the prompt again. Recording view uses an English prompt; normal view uses Korean. Snapshot mode and automated UI tests suppress this prompt.
+
+Registered types: `.nsf`, `.nsfe`, `.spc`, `.gbs`, `.gsf`, `.minigsf`, `.2sf`, `.mini2sf`, `.usf`, `.miniusf`, `.bcstm`, `.bcwav`, `.vgm`, `.vgz`. Companion libraries, game ROMs and ZIP/Zophar archives are excluded. Registration adds this player as a candidate without overwriting existing extension defaults or Windows UserChoice.
+
+Double-clicked files are sent to the existing player and played there. A minimized window is restored; launching without a file activates the existing window. Simultaneous launches use one player per Windows user/session. An unresponsive existing player produces an error. After moving a registered portable folder, run the executable from its new location once to refresh its own registration under your previous consent. Windows default choices are preserved. Close V1.3 or earlier builds before running this version because they do not implement file handoff.
 
 Open or drop NSF/NSFE/SPC/GBS/GSF/2SF/USF/BCSTM/BCWAV/VGM/VGZ. Select an internal track with the track menu. Space pauses/resumes; arrow keys switch tracks; Ctrl+O opens a file. Click a channel label to mute and its slider to change volume. F9 toggles recording view; F11 fullscreen; Esc exits fullscreen. +/- changes scope time scale, More than eight channels are shown together in two columns divided down the center. The output-rate menu selects 16000/22050/32000/44100/48000/96000 Hz. The master slider is separate. A metadata-defined duration enables the progress/seek bar; unknown lengths remain unknown and require manual stopping. Repeat restarts the current track at a metadata-defined end.
 
@@ -16,7 +22,7 @@ The producer renders at fixed 48kHz into a bounded SPSC audio ring; device callb
 
 Changing output rate prepares a replacement device before closing the old one and retains core position/history. Single-device drivers briefly close/reopen output while retaining the sample clock and queued audio. A failed new-format open restores the previous settings and reports the error. Short hardware transition latency is possible; arbitrary device hot removal/default-device changes are not automatically reconnected. Output conversion uses a 32-tap windowed-sinc low-pass filter; it cannot restore information missing from the source PCM. Track changes and seek reset queues; long seeks can block while music cores compute skipped playback.
 
-Upload the full source folder from the source ZIP to a GitHub repository root. The Windows-2022 Actions workflow uses runner-provided VS2022/CMake/Python to configure, build, test real cores and callbacks, install and upload separate V1.3 runtime and corresponding-source ZIPs. Actual GitHub execution must be verified after upload. Third-party sources are bundled and pinned by SHA256, so dependency fetching is not required in CI. Local rebuilding is optional:
+Upload the full source folder from the source ZIP to a GitHub repository root. The Windows-2022 Actions workflow uses runner-provided VS2022/CMake/Python to configure, build, test real cores and callbacks, install and upload separate V1.3.1 runtime and corresponding-source ZIPs. Actual GitHub execution must be verified after upload. Third-party sources are bundled and pinned by SHA256, so dependency fetching is not required in CI. Local rebuilding is optional:
 
 ```powershell
 cmake -S . -B build -G "Visual Studio 17 2022" -A x64
@@ -40,7 +46,7 @@ FDS-bearing NSF/NSFE files receive a fixed +4 dB output trim and SPC (SNES) rece
 The bundled libgme 0.6.5 NSF/NSFE core implements VRC6, VRC7, FDS, MMC5, Namco 163/106 and Sunsoft 5B/FME-7. This does not guarantee every chip, file revision or music driver works. Unusual bank switching and newer file features need file-specific verification. Only FDS currently has an explicit expansion-audio fixture test here; the other expansion implementations have not been verified with actual music dumps. SPC playback does not execute every SNES game-ROM coprocessor.
 
 
-## V1.3 changes
+## Features carried forward from earlier versions
 
 FDS RAM and copy-on-bank-switch support fixes the supplied Doki Doki Panic and Zelda II dumps loading at $6000. Original archives stay intact; CMake applies the local LGPL source replacements in third_party/gme-fds-patch. See docs/FDS-COMPATIBILITY.md.
 
@@ -90,17 +96,17 @@ Use the normal-view Autoplay button or A key to toggle automatic advance to the 
 
 GBA PCM now uses a 16-kernel reconstruction bank selected from the actual timer sample rate. Output conversion uses 32-tap windowed-sinc interpolation with anti-alias filtering for lower rates and varispeed. The supplied Super Mario Advance 4 PCM is approximately 10,512 Hz, 8-bit; 96kHz output cannot recover missing source bandwidth. PCM A/B may already contain software-mixed instruments.
 
-N64 Audio/NAudio dry envelope slots are captured before summation and traced through interleave/save/Audio Interface DMA to preserve sample alignment. Up to 30 synthesis slots plus residual game effects are supported; V1.3 displays all declared slots immediately, including silent slots. These are synthesizer state slots, not MIDI instrument names or fixed hardware voices. Unsupported NEAD/MusyX/software paths retain final LEFT/RIGHT output. No duplicate full-mix waveforms or 30 emulation cores are used.
+N64 Audio/NAudio dry envelope slots are captured before summation and traced through interleave/save/Audio Interface DMA to preserve sample alignment. Up to 30 synthesis slots plus residual game effects are supported; V1.3.1 displays all declared slots immediately, including silent slots. These are synthesizer state slots, not MIDI instrument names or fixed hardware voices. Unsupported NEAD/MusyX/software paths retain final LEFT/RIGHT output. No duplicate full-mix waveforms or 30 emulation cores are used.
 
 3DS BCSTM track tables provide stereo/mono grouping, volume and pan. Mono stems are centered instead of being assigned to a single side. Stored channels cannot expose instruments already mixed together: ATHLETIC has 5 channels, MENU 8, BIG_MARIO 2.
 
 The first six seconds plus seek and mute were checked on 38 supplied N64 files, 99 3DS files and 3 GBA files. This is limited coverage, not a guarantee for every game or every position. Autoplay/folder navigation and the DS one-shot crash fix remain included. All corresponding source and GPL notices are included.
 
-## V1.3 · 1.3.0
+## V1.3 series · SMS/Mega Drive support
 
 - Added SMS and Mega Drive/Genesis VGM/VGZ playback: SMS PSG 4 voices; YM2413 expansion 9 FM + 5 drums + 4 PSG; Genesis 6 FM + DAC + 4 PSG.
 - Folder navigation and autoplay also apply to VGM/VGZ. Actual command waits determine the first-pass duration; Repeat restarts the entire file.
 - More than eight channels appear together in two columns, ordered down the left then the right. N64 slots appear before they produce sound. Unused NES DMC hiding is retained.
-- Runtime and complete corresponding source are separate: `NintendoGameMusicViewer-V1.3-Windows-x64.zip` and `NintendoGameMusicViewer-V1.3-source.zip`. Provide both when distributing under GPL. Runtime contains the executable, replaceable DLL, documentation and licenses.
+- Runtime and complete corresponding source are separate: `NintendoGameMusicViewer-V1.3.1-Windows-x64.zip` and `NintendoGameMusicViewer-V1.3.1-source.zip`. Provide both when distributing under GPL. Runtime contains the executable, replaceable DLL, documentation and licenses.
 
 Supported VGM/VGZ uses single SN76489/YM2413/YM2612 chips and legacy DAC commands. Other consoles/chips, dual chips, streaming DAC commands 0x90–0x95, GYM/SGC and ROMs are not supported. Encoded/decoded files are capped at 64MiB and the first pass at one hour. The GENS FM core may sound different from real hardware. See docs/V1.3-SEGA.md in the source ZIP.
