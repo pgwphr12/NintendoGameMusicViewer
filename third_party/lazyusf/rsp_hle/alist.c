@@ -31,6 +31,7 @@
 #include "hle_external.h"
 #include "hle_internal.h"
 #include "memory.h"
+#include "../usf.h"
 
 struct ramp_t
 {
@@ -145,6 +146,8 @@ void alist_set_address(struct hle_t* hle, uint32_t so, uint32_t *segments, size_
 
 void alist_clear(struct hle_t* hle, uint16_t dmem, uint16_t count)
 {
+    if (hle->viewer && hle->viewer->clear)
+        hle->viewer->clear(hle->viewer->context, dmem, count);
     while(count != 0) {
         *alist_u8(hle, dmem++) = 0;
         --count;
@@ -157,6 +160,9 @@ void alist_load(struct hle_t* hle, uint16_t dmem, uint32_t address, uint16_t cou
     dmem    &= ~3;
     address &= ~7;
     count = align(count, 8);
+    /* Loaded reverb/decoded input is not a dry voice contribution. */
+    if (hle->viewer && hle->viewer->clear)
+        hle->viewer->clear(hle->viewer->context, dmem, count);
     memcpy(hle->alist_buffer + dmem, hle->dram + address, count);
 }
 
@@ -166,11 +172,15 @@ void alist_save(struct hle_t* hle, uint16_t dmem, uint32_t address, uint16_t cou
     dmem    &= ~3;
     address &= ~7;
     count = align(count, 8);
+    if (hle->viewer && hle->viewer->save)
+        hle->viewer->save(hle->viewer->context, dmem, address, count);
     memcpy(hle->dram + address, hle->alist_buffer + dmem, count);
 }
 
 void alist_move(struct hle_t* hle, uint16_t dmemo, uint16_t dmemi, uint16_t count)
 {
+    if (hle->viewer && hle->viewer->move)
+        hle->viewer->move(hle->viewer->context, dmemo, dmemi, count);
     while (count != 0) {
         *alist_u8(hle, dmemo++) = *alist_u8(hle, dmemi++);
         --count;
@@ -224,6 +234,8 @@ void alist_copy_blocks(struct hle_t* hle, uint16_t dmemo, uint16_t dmemi, uint16
 
 void alist_interleave(struct hle_t* hle, uint16_t dmemo, uint16_t left, uint16_t right, uint16_t count)
 {
+    if (hle->viewer && hle->viewer->interleave)
+        hle->viewer->interleave(hle->viewer->context, dmemo, left, right, count);
     uint16_t       *dst  = (uint16_t*)(hle->alist_buffer + dmemo);
     const uint16_t *srcL = (uint16_t*)(hle->alist_buffer + left);
     const uint16_t *srcR = (uint16_t*)(hle->alist_buffer + right);
@@ -339,6 +351,10 @@ void alist_envmix_exp(
             gains[3] = clamp_s16((r_vol * wet + 0x4000) >> 15);
 
             alist_envmix_mix(n, buffers, gains, in[ptr^S]);
+            if (hle->viewer && hle->viewer->mix)
+                hle->viewer->mix(hle->viewer->context, address, dmem_dl, dmem_dr, ptr^S,
+                    ((in[ptr^S] * gains[0]) >> 15) / 32768.f,
+                    ((in[ptr^S] * gains[1]) >> 15) / 32768.f);
             ++ptr;
         }
     }
@@ -420,6 +436,10 @@ void alist_envmix_ge(
         gains[3] = clamp_s16((r_vol * wet + 0x4000) >> 15);
 
         alist_envmix_mix(n, buffers, gains, in[k^S]);
+        if (hle->viewer && hle->viewer->mix)
+            hle->viewer->mix(hle->viewer->context, address, dmem_dl, dmem_dr, k^S,
+                ((in[k^S] * gains[0]) >> 15) / 32768.f,
+                ((in[k^S] * gains[1]) >> 15) / 32768.f);
     }
 
     *(int16_t *)(save_buffer +  0) = wet;               /* 0-1 */
@@ -495,6 +515,10 @@ void alist_envmix_lin(
         gains[3] = clamp_s16((r_vol * wet + 0x4000) >> 15);
 
         alist_envmix_mix(4, buffers, gains, in[k^S]);
+        if (hle->viewer && hle->viewer->mix)
+            hle->viewer->mix(hle->viewer->context, address, dmem_dl, dmem_dr, k^S,
+                ((in[k^S] * gains[0]) >> 15) / 32768.f,
+                ((in[k^S] * gains[1]) >> 15) / 32768.f);
     }
 
     *(int16_t *)(save_buffer +  0) = wet;            /* 0-1 */
@@ -563,6 +587,8 @@ void alist_envmix_nead(
 
 void alist_mix(struct hle_t* hle, uint16_t dmemo, uint16_t dmemi, uint16_t count, int16_t gain)
 {
+    if (hle->viewer && hle->viewer->add)
+        hle->viewer->add(hle->viewer->context, dmemo, dmemi, count, gain / 32768.f);
     int16_t       *dst = (int16_t*)(hle->alist_buffer + dmemo);
     const int16_t *src = (int16_t*)(hle->alist_buffer + dmemi);
 

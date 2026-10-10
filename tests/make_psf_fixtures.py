@@ -18,6 +18,17 @@ exe=struct.pack('<III',0x8000000,0,len(rom))+rom
 psf(root/'channels.gsf',0x22,exe,'title=Original GBA channel test\ngame=Original GSF fixture\nlength=0:03\nfade=0:01\n')
 psf(root/'channels.gsflib',0x22,exe)
 psf(root/'channels.minigsf',0x22,b'','_lib=channels.gsflib\ntitle=Mini GBA library test\nlength=0:03\n')
+# Independent Direct Sound FIFO streams at 10512 Hz and 16384 Hz, like real game timers.
+pcm_rom=bytearray(0x41000)
+driver=arm_writes([(0x4000084,0x80),(0x4000080,0xfb0c0077),
+ (0x40000bc,0x8001000),(0x40000c0,0x40000a0),(0x40000c4,0xb6400004),
+ (0x40000c8,0x8021000),(0x40000cc,0x40000a4),(0x40000d0,0xb6400004),
+ (0x4000100,0x0080f9c4),(0x4000104,0x0080fc00)])
+pcm_rom[:len(driver)]=driver
+for off,period in [(0x1000,24),(0x21000,37)]:
+ pcm_rom[off:off+0x20000]=bytes(int(100*math.sin(i*2*math.pi/period))&255 for i in range(0x20000))
+psf(root/'pcm.gsf',0x22,struct.pack('<III',0x8000000,0,len(pcm_rom))+pcm_rom,
+ 'title=Original GBA PCM reconstruction test\nlength=0:03\n')
 arm7=arm_writes([(0x4000500,0x807f),(0x4000488,0xf000),(0x4000480,0xe040007f),(0x4000498,0xf500),(0x4000490,0xe240007f),(0x4000404,0x3800800),(0x4000408,0xfc00),(0x400040c,64),(0x4000400,0x8840007f)])
 program=bytearray(0x900);program[:len(arm7)]=arm7
 program[0x800:]=bytes(int(110*math.sin(i*2*math.pi/32))&255 for i in range(256))
@@ -57,6 +68,18 @@ header=bytearray(0x200);header[:4]=b'CSTM';struct.pack_into('<HHIIH',header,4,0x
 struct.pack_into('<HHII',header,0x14,0x4000,0,0x40,len(info));struct.pack_into('<HHII',header,0x20,0x4002,0,0x200,0x20+len(payload));header[0x40:0x140]=info
 data=b'DATA'+struct.pack('<I',0x20+len(payload))+bytes(0x18)+payload
 (root/'channels.bcstm').write_bytes(header+data)
+# Two stereo stems plus a mono stem, with an explicit BCSTM track channel table.
+pcm5=[b''.join(struct.pack('<h',int(12000*math.sin(i*2*math.pi*f/rate))) for i in range(samples)) for f in (220,330,440,550,660)]
+payload5=b''.join(ch[at:at+4096] for at in range(0,len(pcm5[0]),4096) for ch in pcm5)
+info5=bytearray(info);info5[0x22]=5;struct.pack_into('<I',info5,0x14,0x58)
+struct.pack_into('<I',info5,0x60,3)
+for t,ids in enumerate([(0,1),(2,3),(4,)]):
+ track=0xa0+t*0x18
+ struct.pack_into('<HHI',info5,0x64+t*8,0x4101,0,track-0x60)
+ info5[track:track+4]=bytes([127,64,0,0]);struct.pack_into('<HHI',info5,track+4,0x100,0,12)
+ struct.pack_into('<I',info5,track+12,len(ids));info5[track+16:track+16+len(ids)]=bytes(ids)
+header5=bytearray(header);struct.pack_into('<I',header5,12,0x220+len(payload5));struct.pack_into('<I',header5,0x28,0x20+len(payload5));header5[0x40:0x140]=info5
+(root/'stems.bcstm').write_bytes(header5+b'DATA'+struct.pack('<I',0x20+len(payload5))+bytes(0x18)+payload5)
 # Native BCWAV DSP-ADPCM with two zero-predictor coefficient sets and original nibbles.
 frames=3000;num_samples=frames*14
 adpcm=[]

@@ -6,6 +6,7 @@ fds.nsf voices=6 energy=7.03672
 fds-banked.nsf voices=6 energy=7.03996
 fds-banked.nsfe voices=6 energy=7.03996
 Format opening, metadata, track switching, actual audio, FDS, hardware names, mute and independent channel buffers: PASS
+GBA Direct Sound, N64 HLE envelope/interleave/save/DMA and sinc anti-alias: PASS
 channels.gsf: actual channel PCM, mute/source retention, metadata, seek/fade PASS
 channels.minigsf: actual channel PCM, mute/source retention, metadata, seek/fade PASS
 channels.2sf: actual channel PCM, mute/source retention, metadata, seek/fade PASS

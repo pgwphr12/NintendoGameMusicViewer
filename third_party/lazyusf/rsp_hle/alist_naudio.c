@@ -27,6 +27,7 @@
 #include "common.h"
 
 #include "alist.h"
+#include "../usf.h"
 #include "hle_external.h"
 #include "hle_internal.h"
 #include "memory.h"
@@ -267,6 +268,8 @@ static void MP3(struct hle_t* hle, uint32_t w1, uint32_t w2)
 /* global functions */
 void alist_process_naudio(struct hle_t* hle)
 {
+    if (hle->viewer && hle->viewer->supported)
+        hle->viewer->supported(hle->viewer->context);
     static const acmd_callback_t ABI[0x10] = {
         SPNOOP,         ADPCM,          CLEARBUFF,      ENVMIXER,
         LOADBUFF,       RESAMPLE,       SAVEBUFF,       NAUDIO_0000,
@@ -279,6 +282,8 @@ void alist_process_naudio(struct hle_t* hle)
 
 void alist_process_naudio_bk(struct hle_t* hle)
 {
+    if (hle->viewer && hle->viewer->supported)
+        hle->viewer->supported(hle->viewer->context);
     /* TODO: see what differs from alist_process_naudio */
     static const acmd_callback_t ABI[0x10] = {
         SPNOOP,         ADPCM,          CLEARBUFF,      ENVMIXER,
@@ -292,6 +297,8 @@ void alist_process_naudio_bk(struct hle_t* hle)
 
 void alist_process_naudio_dk(struct hle_t* hle)
 {
+    if (hle->viewer && hle->viewer->supported)
+        hle->viewer->supported(hle->viewer->context);
     /* TODO: see what differs from alist_process_naudio */
     static const acmd_callback_t ABI[0x10] = {
         SPNOOP,         ADPCM,          CLEARBUFF,      ENVMIXER,
@@ -317,6 +324,8 @@ void alist_process_naudio_mp3(struct hle_t* hle)
 
 void alist_process_naudio_cbfd(struct hle_t* hle)
 {
+    if (hle->viewer && hle->viewer->supported)
+        hle->viewer->supported(hle->viewer->context);
     /* TODO: see what differs from alist_process_naudio_mp3 */
     static const acmd_callback_t ABI[0x10] = {
         UNKNOWN,        ADPCM,          CLEARBUFF,      ENVMIXER,

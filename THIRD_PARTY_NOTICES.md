@@ -37,3 +37,5 @@ vgmstream from https://github.com/vgmstream/vgmstream at 7dc938fa2f210943b37c7b6
 The application CMake configuration enables UTF-8 compilation for libvgmstream and its upstream VGM_STDIO_UNICODE path support for streamfile_stdio.c on MSVC. Upstream source files are unchanged.
 
 V1.1 modifications dated 2026-10-10: SPU_Mix in vio2sf SPU.cpp now skips the terminal one-shot fetch position before waveform capture or mixing; see docs/DS-STABILITY.md. Original upstream notices and pinned archives are retained.
+
+V1.2 modifications (2026-10-10): viogsf GBA.h/Sound.cpp use a 16-kernel source-rate PCM reconstruction bank. LazyUSF usf.h/usf.c, audio.c and rsp_hle/{hle_internal.h,alist.c,alist_audio.c,alist_naudio.c} add read-only dry envelope-slot taps and buffer/DMA observers. Original archives and licenses remain unchanged; full modified sources are included.

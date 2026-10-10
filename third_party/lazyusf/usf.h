@@ -34,6 +34,21 @@ void usf_set_fifo_full(void * state, int enable);
    of accuracy, and potentially emulation bugs. */
 void usf_set_hle_audio(void * state, int enable);
 
+/* Viewer extension: observe dry voice contributions without modifying emulation.
+   Addresses and sample indices use the core's word-swapped memory layout. */
+struct usf_voice_tap {
+    void *context;
+    void (*supported)(void *);
+    void (*clear)(void *, unsigned, unsigned);
+    void (*move)(void *, unsigned, unsigned, unsigned);
+    void (*add)(void *, unsigned, unsigned, unsigned, float);
+    void (*mix)(void *, uint32_t, unsigned, unsigned, unsigned, float, float);
+    void (*interleave)(void *, unsigned, unsigned, unsigned, unsigned);
+    void (*save)(void *, unsigned, uint32_t, unsigned);
+    void (*dma)(void *, uint32_t, const int16_t *, unsigned);
+};
+void usf_set_voice_tap(void *state, struct usf_voice_tap *tap);
+
 /* This processes and uploads the ROM and/or Project 64 save state data
    present in the reserved section of each USF file. They should be
    uploaded in the order in which psf_load processes them, or in priority

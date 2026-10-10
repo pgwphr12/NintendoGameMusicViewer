@@ -5,15 +5,15 @@
 	disabled="0"
 	skipped="0"
 	hostname="[NON-UTF-8-BYTE-0xB9][NON-UTF-8-BYTE-0xDA][NON-UTF-8-BYTE-0xC7]϶[NON-UTF-8-BYTE-0xF7]"
-	time="31"
-	timestamp="2026-10-10T16:26:18"
+	time="56"
+	timestamp="2026-10-10T16:22:45"
 	>
-	<testcase name="fixtures" classname="fixtures" time="0.461741" status="run">
+	<testcase name="fixtures" classname="fixtures" time="0.404737" status="run">
 		<properties/>
 		<system-out>Generated original NSF, NSFE, FDS, GBS and SPC fixtures.
 </system-out>
 	</testcase>
-	<testcase name="core_audio_channels" classname="core_audio_channels" time="9.32901" status="run">
+	<testcase name="core_audio_channels" classname="core_audio_channels" time="30.1931" status="run">
 		<properties/>
 		<system-out>channels.nsf voices=5 energy=9.91188
 channels.nsfe voices=5 energy=9.91188
@@ -34,7 +34,7 @@ channels.usf: real stereo PCM, independent outputs, metadata, mute/se...
 [This part of the test output was removed since it exceeds the threshold of 1024 bytes.]
 </system-out>
 	</testcase>
-	<testcase name="native_ui_layout" classname="native_ui_layout" time="14.4582" status="run">
+	<testcase name="native_ui_layout" classname="native_ui_layout" time="17.0619" status="run">
 		<properties/>
 		<system-out>1280x720, fds.nsf, recording=False: native frame and layout PASS
 1600x900, channels.gbs, recording=False: native frame and layout PASS
@@ -49,14 +49,14 @@ channels.usf: real stereo PCM, independent outputs, metadata, mute/se...
 1280x720, channels.bcwav, recording=True: native frame and layout PASS
 </system-out>
 	</testcase>
-	<testcase name="native_ui_clicks" classname="native_ui_clicks" time="3.90325" status="run">
+	<testcase name="native_ui_clicks" classname="native_ui_clicks" time="4.14217" status="run">
 		<properties/>
 		<system-out>Fullscreen restore + channel click case 1: mute/unmute and hidden-DMC index mapping PASS
 Fullscreen restore + channel click case 2: mute/unmute and hidden-DMC index mapping PASS
 Fullscreen restore + channel click case 3: mute/unmute and hidden-DMC index mapping PASS
 </system-out>
 	</testcase>
-	<testcase name="native_folder_playlist" classname="native_folder_playlist" time="2.95114" status="run">
+	<testcase name="native_folder_playlist" classname="native_folder_playlist" time="5.08062" status="run">
 		<properties/>
 		<system-out>DS automatic folder advance, natural order, previous/next keys/buttons and wrap and page/recording repaint: PASS
 Autoplay button off/on, manual navigation while off, and recording-view A toggle: PASS

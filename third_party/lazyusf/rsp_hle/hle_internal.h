@@ -29,6 +29,7 @@
 /* rsp hle internal state - internal usage only */
 struct hle_t
 {
+    struct usf_voice_tap *viewer;
     unsigned char* dram;
     unsigned char* dmem;
     unsigned char* imem;

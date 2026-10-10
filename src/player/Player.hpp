@@ -16,6 +16,7 @@ class Player {
     std::atomic<float> reverbAmount_{.45f};
     std::atomic<float> reverbDecay_{1.2f};
     std::atomic<bool> dmcUsed_{false};
+    std::atomic<uint32_t> usedChannels_{0};
     ChannelHistory history_;
     std::unique_ptr<IMusicBackend> backend_;
     std::thread worker_;
@@ -78,6 +79,9 @@ class Player {
     }
     bool dmcUsed() const {
         return dmcUsed_.load();
+    }
+    bool channelUsed(size_t index) const {
+        return index < 32 && (usedChannels_.load() & (uint32_t(1) << index));
     }
     bool reverb() const {
         return reverbEnabled_.load();

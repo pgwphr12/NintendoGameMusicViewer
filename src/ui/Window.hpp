@@ -25,6 +25,7 @@ class Window {
     void selectFolder(size_t index, bool play);
     void nextTrack(int direction, bool automatic = false);
     bool recording_ = false, fullscreen_ = false;
+    bool autoplay_ = true;
     int page_ = 0, windowSamples_ = 2048;
     int speedStep_ = 10;
     RECT oldRect_{};

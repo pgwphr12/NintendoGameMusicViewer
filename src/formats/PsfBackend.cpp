@@ -1,4 +1,5 @@
 #include "PsfBackend.hpp"
+#include "UsfVoiceTap.hpp"
 #include <GBA.h>
 extern "C" {
 #include <state.h>
@@ -331,7 +332,8 @@ struct DsCore {
 };
 struct UsfCore {
     std::vector<uint8_t> state;
-    std::deque<Stereo> pending;
+    UsfVoiceTap tap;
+    std::deque<UsfVoiceTap::Frame> pending;
     double position = 0;
     int32_t rate = 0;
     explicit UsfCore(const Image &image) : state(usf_get_state_size()) {
@@ -347,6 +349,7 @@ struct UsfCore {
         usf_set_compare(state.data(), image.tags.count("_enablecompare") != 0);
         usf_set_fifo_full(state.data(), image.tags.count("_enablefifofull") != 0);
         usf_set_hle_audio(state.data(), 1);
+        usf_set_voice_tap(state.data(), &tap.callbacks);
     }
     ~UsfCore() {
         usf_shutdown(state.data());
@@ -357,14 +360,24 @@ struct UsfCore {
         if (error)
             throw std::runtime_error(error);
         need(rate >= 8000 && rate <= 192000, "Invalid USF output sample rate.");
-        for (size_t i = 0; i < 1024; i++)
-            pending.push_back({mix[i * 2] / 32768.f, mix[i * 2 + 1] / 32768.f});
+        need(tap.pending.size() >= 1024, "N64 voice tap lost sample alignment.");
+        for (size_t i = 0; i < 1024; i++) {
+            auto frame = tap.pending.front();
+            tap.pending.pop_front();
+            need(std::abs(frame[0].l - mix[i * 2] / 32768.f) < .0001f &&
+                     std::abs(frame[0].r - mix[i * 2 + 1] / 32768.f) < .0001f,
+                 "N64 DMA tap lost sample alignment.");
+            pending.push_back(frame);
+        }
     }
-    Stereo next() {
+    UsfVoiceTap::Frame next() {
         while (pending.size() < 2)
             fill();
         auto a = pending[0], b = pending[1];
-        Stereo value{float(a.l + (b.l - a.l) * position), float(a.r + (b.r - a.r) * position)};
+        UsfVoiceTap::Frame value{};
+        for (size_t c = 0; c < value.size(); ++c)
+            value[c] = {float(a[c].l + (b[c].l - a[c].l) * position),
+                        float(a[c].r + (b[c].r - a[c].r) * position)};
         position += double(rate) / InternalRate;
         while (position >= 1) {
             if (pending.size() < 2)
@@ -418,7 +431,7 @@ class PsfBackend final : public IMusicBackend {
         fadeMs_ = std::max(0, milliseconds(image_.tag("fade")));
         tracks_.push_back({image_.tag("title"), image_.tag("game"), image_.tag("artist"),
                            format == Format::Gsf   ? "Game Boy Advance"
-                           : format == Format::Usf ? "Nintendo 64 · Stereo Output"
+                           : format == Format::Usf ? "Nintendo 64"
                                                    : "Nintendo DS",
                            image_.tag("comment"), fadeStart_ < 0 ? -1 : fadeStart_ + fadeMs_});
         if (format == Format::Gsf)
@@ -431,6 +444,18 @@ class PsfBackend final : public IMusicBackend {
             for (int i = 1; i <= 16; i++)
                 channels_.push_back({"CHANNEL " + std::to_string(i)});
         selectTrack(0);
+        if (usf_) {
+            // Determine whether this game's microcode exposes envelope-state voice slots.
+            // Preserve the probe samples so playback still starts at time zero.
+            for (int i = 0; i < 8; ++i)
+                usf_->fill();
+            if (usf_->tap.used || usf_->tap.supported) {
+                channels_.clear();
+                for (size_t c = 0; c < UsfVoiceTap::Voices; ++c)
+                    channels_.push_back({"CHANNEL " + std::to_string(c + 1)});
+                channels_.push_back({"EFFECTS / OTHER"});
+            }
+        }
     }
     const std::vector<TrackInfo> &tracks() const override {
         return tracks_;
@@ -476,10 +501,23 @@ class PsfBackend final : public IMusicBackend {
             v.resize(frames);
         if (usf_)
             for (size_t i = 0; i < frames; i++) {
-                auto value = usf_->next();
-                out.voices[0][i] = {value.l, 0};
-                out.voices[1][i] = {0, value.r};
-                out.mix[i] = {(mask_ & 1) ? 0 : value.l, (mask_ & 2) ? 0 : value.r};
+                auto frame = usf_->next();
+                if (channels_.size() == 2) {
+                    out.voices[0][i] = {frame[0].l, 0};
+                    out.voices[1][i] = {0, frame[0].r};
+                    out.mix[i] = {(mask_ & 1) ? 0 : frame[0].l, (mask_ & 2) ? 0 : frame[0].r};
+                } else {
+                    out.mix[i] = {};
+                    for (size_t c = 0; c < channels_.size(); ++c) {
+                        out.voices[c][i] = frame[c + 1];
+                        if (!(mask_ & (1u << c))) {
+                            out.mix[i].l += frame[c + 1].l;
+                            out.mix[i].r += frame[c + 1].r;
+                        }
+                    }
+                    if (mask_ == 0)
+                        out.mix[i] = frame[0]; // preserve the original clipped mix exactly
+                }
             }
         else if (ds_)
             for (size_t i = 0; i < frames; i++) {

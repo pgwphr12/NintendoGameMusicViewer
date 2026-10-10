@@ -1,4 +1,4 @@
-# Nintendo Game Music Viewer V1.1 (1.1.0)
+# Nintendo Game Music Viewer V1.2 (1.2.0)
 
 A new C++17 native Windows game-music player with real independent channel scopes. No Mesen or earlier NTSC application code is included. No game ROM execution or game-screen functionality is exposed. The separate music core necessarily simulates the hardware needed to execute music drivers.
 
@@ -12,9 +12,9 @@ Each hardware voice is rendered by an independent synchronized libgme core with 
 
 At unity individual volume the original mix and real core mute API are used. Adjusting a channel volume mixes isolated signals, so nonlinear/shared mixer interactions may differ from the original mix. Multiple cores increase CPU/memory requirements. All commercial dumps and exotic expansion behavior are not guaranteed.
 
-The producer renders at fixed 48kHz into a bounded SPSC audio ring; device callbacks consume and linearly resample without file I/O, core calls, UI calls or dynamic allocation. Separate timestamped channel histories feed an approximately 60Hz visualization clock tied to consumed audio frames. Min/max envelopes and rising triggers reduce aliasing. Histories survive temporary audio underruns; underrun counters remain available internally. Physical device latency can cause a small scope/audio offset.
+The producer renders at fixed 48kHz into a bounded SPSC audio ring; device callbacks consume and windowed-sinc resample without file I/O, core calls, UI calls or dynamic allocation. Separate timestamped channel histories feed an approximately 60Hz visualization clock tied to consumed audio frames. Min/max envelopes and rising triggers reduce aliasing. Histories survive temporary audio underruns; underrun counters remain available internally. Physical device latency can cause a small scope/audio offset.
 
-Changing output rate prepares a replacement device before closing the old one and retains core position/history. Single-device drivers briefly close/reopen output while retaining the sample clock and queued audio. A failed new-format open restores the previous settings and reports the error. Short hardware transition latency is possible; arbitrary device hot removal/default-device changes are not automatically reconnected. The linear resampler is not a mastering-grade band-limited resampler. Track changes and seek reset queues; long seeks can block while music cores compute skipped playback.
+Changing output rate prepares a replacement device before closing the old one and retains core position/history. Single-device drivers briefly close/reopen output while retaining the sample clock and queued audio. A failed new-format open restores the previous settings and reports the error. Short hardware transition latency is possible; arbitrary device hot removal/default-device changes are not automatically reconnected. Output conversion uses a 32-tap windowed-sinc low-pass filter; it cannot restore information missing from the source PCM. Track changes and seek reset queues; long seeks can block while music cores compute skipped playback.
 
 Upload this whole folder to a GitHub repository root. The Windows-2022 Actions workflow uses runner-provided VS2022/CMake/Python to configure, build, test real cores and callbacks, install and upload NintendoGameMusicViewer-Windows-x64.zip. Actual GitHub execution must be verified after upload. Third-party sources are bundled and pinned by SHA256, so dependency fetching is not required in CI. Local rebuilding is optional:
 
@@ -46,7 +46,7 @@ FDS RAM and copy-on-bank-switch support fixes the supplied Doki Doki Panic and Z
 
 Channel volume ranges from 0 to 200%, default 100% (slider midpoint). Raise only the quiet voice; default voice balance is unchanged. Pitch/speed uses 0.1x steps, range 0.5–2.0x, reset 1.0x. Pitch and tempo change together through varispeed. Playback position uses source time. Recording view hides controls.
 
-Output defaults to 96kHz; 16/22.05/32/44.1/48kHz are selectable. Generation stays at 48kHz. The existing linear resampler can alias at lower output rates. Reverb adds subtle damped room reflections (off by default), and does not remove echo encoded in a source SPC. Channel histories remain pre-effect. The final limiter bounds effect peaks; stop/seek/track changes reset the tail.
+Output defaults to 96kHz; 16/22.05/32/44.1/48kHz are selectable. Generation stays at 48kHz. V1.2 uses windowed-sinc output filtering to suppress aliasing at lower rates. Reverb adds subtle damped room reflections (off by default), and does not remove echo encoded in a source SPC. Channel histories remain pre-effect. The final limiter bounds effect peaks; stop/seek/track changes reset the tail.
 
 NES DMC stays hidden until actual isolated PCM exceeds peak 0.0001, then remains visible for that track. New files/different tracks reset the latch; same-track seek/stop retain it. Extremely quiet DMC below the threshold may remain hidden. Audio voices remain intact and UI controls map to original core indices.
 
@@ -72,12 +72,28 @@ Supports all seven target systems through specific music formats: NES NSF/NSFE, 
 
 GBA runs synchronized full-mix plus six isolated cores at 48kHz (pulse 1/2, wave, noise, PCM A/B). Software instruments already mixed inside PCM A/B are not separated. DS extracts actual 16-channel PCM before UI mute/final clipping from a single instrumented vio2sf core; channels are paged eight at a time. DS 44.1kHz and native USF/3DS rates share a linear 48kHz resampling clock.
 
-N64 displays final left/right outputs, and 3DS displays stored stream audio channels, not individual instruments. Native PCM/DSP-ADPCM and other built-in vgmstream codecs are available; external FFmpeg/Vorbis/MP3 codecs are disabled. 3DS game ROMs, BCSAR archives, BCSEQ sequences and 3SF are not supported. These are specific music-format implementations, not a guarantee of every dump/driver/codec for each console.
+N64 exposes supported Audio/NAudio dry synthesis slots plus residual effects, with stereo fallback for other mixing paths. 3DS displays stored stream channels, not individual instruments. Native PCM/DSP-ADPCM and other built-in vgmstream codecs are available; external FFmpeg/Vorbis/MP3 codecs are disabled. 3DS game ROMs, BCSAR archives, BCSEQ sequences and 3SF are not supported. These are specific music-format implementations, not a guarantee of every dump/driver/codec for each console.
 
-Originally authored ARM/MIPS music drivers and PCM/DSP-ADPCM streams test actual decoding, independent PCM, source-preserving mute, metadata, seek/end, audio device and native UI paths. Commercial GBA/N64/3DS dumps remain unverified; see the V1.1 section for the supplied DS set. Complete corresponding application/core sources, modified files, pinned original archives and license texts are included. Application license: GPL-2.0-or-later.
+Originally authored ARM/MIPS music drivers and PCM/DSP-ADPCM streams test actual decoding, independent PCM, source-preserving mute, metadata, seek/end, audio device and native UI paths. Supplied GBA/N64/3DS files were checked with the limited coverage described in V1.2; see V1.1 for the supplied DS set. Complete corresponding application/core sources, modified files, pinned original archives and license texts are included. Application license: GPL-2.0-or-later.
 
 ## V1.1 stability and folder playback
 
 Fixed an out-of-range DS waveform-capture write when a one-shot PCM/ADPCM channel finishes. AddressSanitizer checks passed for the first six seconds plus seek/mute in 98 user-provided New Super Mario Bros. (EMU) mini2SF tracks. Entire songs and every music dump remain unverified. See docs/DS-STABILITY.md.
 
 SPC, GSF/miniGSF, 2SF/mini2SF, USF/miniUSF and BCSTM/BCWAV use same-system music files from the current folder, sorted by filename with natural numeric ordering. Tracks, Previous/Next and Left/Right select folder files. Subfolders and music libraries are excluded. Manual selection keeps playback/paused state. Known-duration tracks automatically advance to the next file; the final file stops. Manual navigation wraps. Repeat repeats the current track. Unknown-duration PSF tracks still need manual navigation. NSF/NSFE/GBS retain internal track selection.
+
+## Autoplay toggle (1.2.0)
+
+Use the normal-view Autoplay button or A key to toggle automatic advance to the next folder file. Default: on. Turning it off stops at the current track end; manual Previous/Next and Tracks still work. The setting survives file changes and recording-view switches for the current session, and returns to its default on app restart. Recording view hides the button; A remains available. Repeat independently repeats the current track. Enabling autoplay alone does not resume stopped playback.
+
+## V1.2 · 1.2.0
+
+GBA PCM now uses a 16-kernel reconstruction bank selected from the actual timer sample rate. Output conversion uses 32-tap windowed-sinc interpolation with anti-alias filtering for lower rates and varispeed. The supplied Super Mario Advance 4 PCM is approximately 10,512 Hz, 8-bit; 96kHz output cannot recover missing source bandwidth. PCM A/B may already contain software-mixed instruments.
+
+N64 Audio/NAudio dry envelope slots are captured before summation and traced through interleave/save/Audio Interface DMA to preserve sample alignment. Up to 30 synthesis slots plus residual game effects are supported; unused slots remain hidden. These are synthesizer state slots, not MIDI instrument names or fixed hardware voices. Unsupported NEAD/MusyX/software paths retain final LEFT/RIGHT output. No duplicate full-mix waveforms or 30 emulation cores are used.
+
+3DS BCSTM track tables provide stereo/mono grouping, volume and pan. Mono stems are centered instead of being assigned to a single side. Stored channels cannot expose instruments already mixed together: ATHLETIC has 5 channels, MENU 8, BIG_MARIO 2.
+
+The first six seconds plus seek and mute were checked on 38 supplied N64 files, 99 3DS files and 3 GBA files. This is limited coverage, not a guarantee for every game or every position. Autoplay/folder navigation and the DS one-shot crash fix remain included. All corresponding source and GPL notices are included.
+
+Sega Master System (SMS) and Mega Drive/Genesis support is planned for V1.3 and is not included in V1.2.

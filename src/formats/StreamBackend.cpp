@@ -5,7 +5,9 @@ extern "C" {
 #include <algorithm>
 #include <array>
 #include <cmath>
+#include <cstring>
 #include <deque>
+#include <fstream>
 #include <stdexcept>
 namespace ngmv {
 namespace {
@@ -15,9 +17,81 @@ class StreamBackend final : public IMusicBackend {
     std::vector<TrackInfo> tracks_;
     std::deque<std::array<float, 30>> pending_;
     std::vector<float> scratch_;
+    std::vector<Stereo> routing_;
     double position_ = 0;
     int rate_ = 0;
     uint32_t mask_ = 0;
+    void routing(const std::filesystem::path &path, size_t channels) {
+        const float groups = float((channels + 1) / 2);
+        routing_.resize(channels);
+        for (size_t c = 0; c < channels; ++c)
+            routing_[c] = channels == 1 || (channels % 2 && c + 1 == channels)
+                              ? Stereo{1 / groups, 1 / groups}
+                          : c % 2 ? Stereo{0, 1 / groups}
+                                  : Stereo{1 / groups, 0};
+        // BCSTM track tables identify stereo pairs and mono stems. Do not assume
+        // alternating L/R for a mono drum stem following several stereo pairs.
+        std::ifstream file(path, std::ios::binary);
+        std::array<uint8_t, 64> header{};
+        if (!file.read(reinterpret_cast<char *>(header.data()), header.size()) ||
+            std::memcmp(header.data(), "CSTM", 4))
+            return;
+        auto u32 = [](const uint8_t *p) {
+            return uint32_t(p[0]) | uint32_t(p[1]) << 8 | uint32_t(p[2]) << 16 |
+                   uint32_t(p[3]) << 24;
+        };
+        unsigned sections = header[16] | unsigned(header[17]) << 8;
+        uint32_t offset = 0, size = 0;
+        for (unsigned i = 0; i < std::min(sections, 3u); ++i)
+            if (header[20 + i * 12] == 0 && header[21 + i * 12] == 0x40) {
+                offset = u32(header.data() + 24 + i * 12);
+                size = u32(header.data() + 28 + i * 12);
+            }
+        if (size < 32 || size > 65536)
+            return;
+        std::vector<uint8_t> info(size);
+        file.seekg(offset);
+        if (!file.read(reinterpret_cast<char *>(info.data()), size))
+            return;
+        auto ref = [&](size_t base, size_t field) -> size_t {
+            if (field + 4 > size)
+                return size;
+            return base + uint64_t(u32(info.data() + field));
+        };
+        size_t table = ref(8, 20);
+        if (table + 4 > size)
+            return;
+        unsigned count = u32(info.data() + table);
+        if (!count || count > 30 || table + 4 + count * 8 > size)
+            return;
+        std::vector<Stereo> candidate(channels);
+        std::vector<bool> assigned(channels);
+        for (unsigned t = 0; t < count; ++t) {
+            size_t track = ref(table, table + 8 + t * 8);
+            if (track + 12 > size)
+                return;
+            size_t indices = ref(track, track + 8);
+            if (indices + 4 > size)
+                return;
+            unsigned n = u32(info.data() + indices);
+            if (n < 1 || n > 2 || indices + 4 + n > size)
+                return;
+            float gain = info[track] / (127.f * count);
+            float left = std::min(1.f, (127 - info[track + 1]) / 63.f);
+            float right = std::min(1.f, info[track + 1] / 64.f);
+            for (unsigned i = 0; i < n; ++i) {
+                size_t c = info[indices + 4 + i];
+                if (c >= channels || assigned[c])
+                    return;
+                assigned[c] = true;
+                candidate[c] = n == 1 ? Stereo{gain * left, gain * right}
+                               : i    ? Stereo{0, gain * right}
+                                      : Stereo{gain * left, 0};
+            }
+        }
+        if (std::all_of(assigned.begin(), assigned.end(), [](bool a) { return a; }))
+            routing_ = std::move(candidate);
+    }
     void fill() {
         scratch_.resize(1024 * channels_.size());
         if (libvgmstream_fill(core_.get(), scratch_.data(), 1024) < 0)
@@ -48,6 +122,7 @@ class StreamBackend final : public IMusicBackend {
             info.sample_rate > 192000 || info.play_samples <= 0)
             throw std::runtime_error("Invalid 3DS stream channels, rate or duration.");
         rate_ = info.sample_rate;
+        routing(path, info.channels);
         for (int c = 0; c < info.channels; c++)
             channels_.push_back({info.channels == 1   ? "MONO"
                                  : info.channels == 2 ? (c ? "RIGHT" : "LEFT")
@@ -91,13 +166,7 @@ class StreamBackend final : public IMusicBackend {
                 float value = float(pending_[0][c] + (pending_[1][c] - pending_[0][c]) * position_);
                 if (!std::isfinite(value))
                     throw std::runtime_error("Non-finite stream audio.");
-                Stereo voice;
-                if (channels_.size() == 1)
-                    voice = {value, value};
-                else if (c % 2 == 0)
-                    voice = {value / float((channels_.size() + 1) / 2), 0};
-                else
-                    voice = {0, value / float(channels_.size() / 2)};
+                Stereo voice{value * routing_[c].l, value * routing_[c].r};
                 out.voices[c][i] = voice;
                 if (!(mask_ & (1u << c))) {
                     out.mix[i].l += voice.l;

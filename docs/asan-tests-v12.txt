@@ -1,0 +1,16 @@
+Internal ctest changing into directory: C:/Users/pgwph/Documents/Codex/2026-10-05/referenced-chatgpt-conversation-this-is-an/work/ngmv-build
+Test project C:/Users/pgwph/Documents/Codex/2026-10-05/referenced-chatgpt-conversation-this-is-an/work/ngmv-build
+    Start 1: fixtures
+1/5 Test #1: fixtures .........................   Passed    0.40 sec
+    Start 2: core_audio_channels
+2/5 Test #2: core_audio_channels ..............   Passed   30.19 sec
+    Start 3: native_ui_layout
+3/5 Test #3: native_ui_layout .................   Passed   17.06 sec
+    Start 4: native_ui_clicks
+4/5 Test #4: native_ui_clicks .................   Passed    4.14 sec
+    Start 5: native_folder_playlist
+5/5 Test #5: native_folder_playlist ...........   Passed    5.08 sec
+
+100% tests passed, 0 tests failed out of 5
+
+Total Test time (real) =  56.90 sec

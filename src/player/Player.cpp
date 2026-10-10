@@ -45,6 +45,7 @@ void Player::open(const std::filesystem::path &path) {
     for (const auto &channel : backend_->channels())
         fds = fds || channel.name == "FDS WAVE";
     dmcUsed_ = false;
+    usedChannels_ = 0;
     level_.configure(format, fds);
     reverb_.reset();
     {
@@ -173,6 +174,15 @@ void Player::produce() {
             backend_->muteMask(mask);
             backend_->render(frames, block);
             history_.append(block);
+            uint32_t active = usedChannels_.load();
+            for (size_t c = 0; c < block.voices.size() && c < 32; ++c)
+                if (!(active & (uint32_t(1) << c)))
+                    for (auto sample : block.voices[c])
+                        if (std::max(std::abs(sample.l), std::abs(sample.r)) > .0001f) {
+                            active |= uint32_t(1) << c;
+                            break;
+                        }
+            usedChannels_ = active;
             if (!dmcUsed_)
                 for (size_t c = 0; c < backend_->channels().size(); ++c)
                     if (backend_->channels()[c].name == "DMC")

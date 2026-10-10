@@ -91,6 +91,11 @@ void usf_set_hle_audio(void * state, int enable)
     USF_STATE->enable_hle_audio = enable;
 }
 
+void usf_set_voice_tap(void *state, struct usf_voice_tap *tap)
+{
+    USF_STATE->hle.viewer = tap;
+}
+
 static uint32_t get_le32( const void * _p )
 {
     const uint8_t * p = (const uint8_t *) _p;

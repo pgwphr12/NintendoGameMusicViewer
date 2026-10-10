@@ -90,6 +90,8 @@ static std::wstring channelLabel(const std::string &name, bool recording) {
         return L"오른쪽 출력";
     if (name == "MONO")
         return L"모노 출력";
+    if (name == "EFFECTS / OTHER")
+        return L"게임 잔향 / 기타";
     if (name.rfind("STREAM ", 0) == 0)
         return L"스트림 " + wide(name.substr(7));
     if (name == "TRIANGLE")
@@ -139,7 +141,8 @@ void Window::open(const std::filesystem::path &p) {
         auto playlist = FolderPlaylist::scan(p, identify(readMusicFile(p)));
         player_.open(p);
         file_ = p;
-        SetWindowTextW(hwnd_, (L"Nintendo Game Music Viewer · V1.1 — " + file_.filename().wstring()).c_str());
+        SetWindowTextW(
+            hwnd_, (L"Nintendo Game Music Viewer · V1.2 — " + file_.filename().wstring()).c_str());
         playlist_ = std::move(playlist);
         page_ = 0;
         drag_ = -1;
@@ -158,7 +161,8 @@ void Window::selectFolder(size_t index, bool play) {
     player_.open(path);
     playlist_.current = index;
     file_ = path;
-    SetWindowTextW(hwnd_, (L"Nintendo Game Music Viewer · V1.1 — " + file_.filename().wstring()).c_str());
+    SetWindowTextW(hwnd_,
+                   (L"Nintendo Game Music Viewer · V1.2 — " + file_.filename().wstring()).c_str());
     page_ = 0;
     drag_ = -1;
     message_.clear();
@@ -261,8 +265,9 @@ std::vector<size_t> Window::visibleChannels() const {
     std::vector<size_t> indices;
     const auto &channels = player_.channels();
     const bool dmcUsed = player_.dmcUsed();
+    const bool n64Voices = !channels.empty() && channels.back().name == "EFFECTS / OTHER";
     for (size_t i = 0; i < channels.size(); ++i)
-        if (channels[i].name != "DMC" || dmcUsed)
+        if ((channels[i].name != "DMC" || dmcUsed) && (!n64Voices || player_.channelUsed(i)))
             indices.push_back(i);
     return indices;
 }
@@ -314,8 +319,9 @@ void Window::paint(HDC dc, int width, int height) {
         button(dc, L"정지", 677, 141, 115);
         button(dc, L"다음", 807, 141, 115);
         button(dc, L"반복", 937, 141, 115, player_.repeat());
-        button(dc, L"녹화 화면", 1067, 141, 200);
-        button(dc, (L"출력 " + std::to_wstring(player_.rate()) + L" Hz").c_str(), 1282, 141, 237);
+        button(dc, L"녹화뷰", 1067, 141, 115);
+        button(dc, autoplay_ ? L"자동재생 켜짐" : L"자동재생 꺼짐", 1197, 141, 160, autoplay_);
+        button(dc, (std::to_wstring(player_.rate()) + L" Hz").c_str(), 1372, 141, 147);
     }
     text(dc, recording_ ? L"Volume" : L"전체 음량", 1550, 131, 140, 28, 18, RGB(154, 168, 190));
     volumeButton(dc, L"−", 1550, 163);
@@ -423,7 +429,7 @@ void Window::paint(HDC dc, int width, int height) {
     if (!recording_ && player_.error().empty())
         text(dc,
              L"Ctrl+O 열기  ·  Space 재생/일시정지  ·  ←/→ Track 전환  ·  F9 녹화 화면  ·  "
-             L"F11 전체 화면  ·  Esc 복원  ·  +/- 시간축  ·  PageUp/Down 채널",
+             L"F11 전체 화면  ·  Esc 복원  ·  +/- 시간축  ·  PageUp/Down 채널  ·  A 자동재생",
              42, 1040, 1840, 30, 18, RGB(112, 130, 153));
     if (!player_.error().empty())
         text(dc, (recording_ ? L"Error: " : L"오류: ") + wide(player_.error()), 42, 1048, 1800, 28,
@@ -512,9 +518,11 @@ void Window::click(int x, int y) {
                 nextTrack(1);
             else if (lx >= 937 && lx < 1052)
                 player_.repeat(!player_.repeat());
-            else if (lx >= 1067 && lx < 1267)
+            else if (lx >= 1067 && lx < 1182)
                 recording_ = true;
-            else if (lx >= 1282 && lx < 1519)
+            else if (lx >= 1197 && lx < 1357)
+                autoplay_ = !autoplay_;
+            else if (lx >= 1372 && lx < 1519)
                 rateMenu();
             return;
         }
@@ -750,7 +758,8 @@ LRESULT Window::event(UINT m, WPARAM a, LPARAM b) {
                 if (repeat) {
                     player_.stop();
                     player_.play();
-                } else if (playlist_.active() && playlist_.current + 1 < playlist_.files.size()) {
+                } else if (autoplay_ && playlist_.active() &&
+                           playlist_.current + 1 < playlist_.files.size()) {
                     nextTrack(1, true);
                 } else
                     message_ = L"Track ended";
@@ -801,7 +810,9 @@ LRESULT Window::event(UINT m, WPARAM a, LPARAM b) {
                     player_.pause();
                 else
                     player_.play();
-            } else if (a == VK_F9)
+            } else if (a == 'A')
+                autoplay_ = !autoplay_;
+            else if (a == VK_F9)
                 recording_ = !recording_;
             else if (a == VK_F11)
                 toggleFullscreen();
@@ -849,7 +860,7 @@ int Window::run(HINSTANCE instance, const std::filesystem::path &initial,
     RegisterClassW(&wc);
     RECT r{0, 0, width, height};
     AdjustWindowRect(&r, WS_OVERLAPPEDWINDOW, FALSE);
-    hwnd_ = CreateWindowW(wc.lpszClassName, L"Nintendo Game Music Viewer · V1.1",
+    hwnd_ = CreateWindowW(wc.lpszClassName, L"Nintendo Game Music Viewer · V1.2",
                           WS_OVERLAPPEDWINDOW, screenshot.empty() ? CW_USEDEFAULT : -20000,
                           screenshot.empty() ? CW_USEDEFAULT : -20000, r.right - r.left,
                           r.bottom - r.top, nullptr, nullptr, instance, this);

@@ -1,4 +1,9 @@
 #include "audio/Resampler.hpp"
+#include "formats/UsfVoiceTap.hpp"
+extern "C" {
+#include <rsp_hle/alist.h>
+#include <rsp_hle/hle.h>
+}
 #include "core/IMusicBackend.hpp"
 #include "player/FolderPlaylist.hpp"
 #include "player/Player.hpp"
@@ -19,6 +24,80 @@ static double energy(const std::vector<Stereo> &s) {
     for (auto v : s)
         e += v.l * v.l + v.r * v.r;
     return e / std::max(size_t(1), s.size());
+}
+static void newAudioTests(const std::filesystem::path &root) {
+    auto gba = makeBackend(readMusicFile(root / "pcm.gsf"), root / "pcm.gsf");
+    AudioBlock pcm;
+    gba->render(8192, pcm);
+    require(energy(pcm.voices[4]) > .001 && energy(pcm.voices[5]) > .001,
+            "Independent timer-driven GBA PCM FIFO disappeared");
+    double difference = 0;
+    for (size_t i = 0; i < pcm.mix.size(); ++i)
+        difference += std::abs(pcm.voices[4][i].l - pcm.voices[5][i].l);
+    require(difference > 10, "GBA PCM streams became copies");
+    gba->muteMask(0x3f);
+    gba->render(8192, pcm);
+    gba->render(8192, pcm);
+    require(energy(pcm.mix) < 1e-7 && energy(pcm.voices[4]) > .001,
+            "GBA PCM mute lost source waveform");
+    auto stream = makeBackend(readMusicFile(root / "stems.bcstm"), root / "stems.bcstm");
+    stream->render(4096, pcm);
+    require(pcm.voices.size() == 5 && energy(pcm.voices[4]) > .001, "3DS stored stems disappeared");
+    for (auto v : pcm.voices[4])
+        require(v.l == v.r, "3DS mono stem was routed to one side");
+    require(pcm.voices[0][100].r == 0 && pcm.voices[1][100].l == 0,
+            "3DS stereo stem lost its track-table routing");
+
+    UsfVoiceTap tap;
+    hle_t hle{};
+    std::vector<uint8_t> dram(8192);
+    hle.dram = dram.data();
+    hle.viewer = &tap.callbacks;
+    auto *samples = reinterpret_cast<int16_t *>(hle.alist_buffer);
+    int16_t vol[] = {16384, 8192};
+    int32_t rate[] = {65536, 65536};
+    alist_clear(&hle, 512, 128);
+    for (int voice = 0; voice < 2; ++voice) {
+        for (int i = 0; i < 16; ++i)
+            samples[i ^ 1] = int16_t(12000 * std::sin(i * (voice ? .7 : .3)));
+        alist_envmix_exp(&hle, true, false, 512, 576, 640, 704, 0, 32, 32767, 0, vol, vol, rate,
+                         128 + voice * 128);
+    }
+    alist_interleave(&hle, 1024, 512, 576, 32);
+    alist_save(&hle, 1024, 4096, 64);
+    tap.callbacks.dma(&tap, 4096, reinterpret_cast<int16_t *>(dram.data() + 4096), 16);
+    require(tap.used == 2 && tap.pending.size() == 16, "N64 HLE slots/DMA clock lost");
+    difference = 0;
+    for (const auto &frame : tap.pending) {
+        require(std::abs(frame.back().l) < .0001f && std::abs(frame.back().r) < .0001f,
+                "N64 dry voices do not reconstruct the real interleaved DMA output");
+        difference += std::abs(frame[1].l - frame[2].l);
+    }
+    require(difference > .1, "N64 source slots became copies");
+    tap.pending.clear();
+    alist_clear(&hle, 512, 128);
+    alist_interleave(&hle, 1024, 512, 576, 32);
+    alist_save(&hle, 1024, 4096, 64);
+    tap.callbacks.dma(&tap, 4096, reinterpret_cast<int16_t *>(dram.data() + 4096), 16);
+    for (const auto &frame : tap.pending)
+        require(frame[1].l == 0 && frame[2].r == 0, "N64 shadow retained stale voice samples");
+
+    StereoRing<> ring;
+    std::vector<Stereo> input(12000);
+    for (size_t i = 0; i < input.size(); ++i)
+        input[i] = {float(.5 * std::sin(i * 2 * 3.141592653589793 * 20000 / 48000)), 0};
+    ring.push(input.data(), input.size());
+    OutputResampler resampler;
+    resampler.rate(16000);
+    std::vector<float> output(6000);
+    resampler.pull(ring, output.data(), 3000, 1);
+    double alias = 0;
+    for (size_t i = 100; i < 2900; ++i)
+        alias += output[2 * i] * output[2 * i];
+    require(alias / 2800 < .00001 && resampler.underruns == 0,
+            "Sinc output resampling failed to suppress downsampling aliases");
+    std::cout
+        << "GBA Direct Sound, N64 HLE envelope/interleave/save/DMA and sinc anti-alias: PASS\n";
 }
 static void wave(const std::filesystem::path &file, const std::vector<Stereo> &pcm) {
     std::ofstream f(file, std::ios::binary);
@@ -561,6 +640,7 @@ int main(int argc, char **argv) {
         require(argc == 2, "Fixture directory required");
         std::filesystem::path root = argv[1];
         formatTests(root);
+        newAudioTests(root);
         psfTests(root);
         folderPlaylistTests(root);
         dsOneShotTest(root);

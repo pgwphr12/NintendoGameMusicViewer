@@ -12,6 +12,10 @@ void AddBuffer(usf_state_t *state, unsigned char *buf, unsigned int length) {
 	
 	if(!state->cpu_running)
 		return;
+
+    if (state->hle.viewer && state->hle.viewer->dma)
+        state->hle.viewer->dma(state->hle.viewer->context,
+            (uint32_t)(buf - state->RDRAM), (const int16_t *)buf, length >> 2);
     
     do_max = length >> 2;
     if ( do_max > state->sample_buffer_count )

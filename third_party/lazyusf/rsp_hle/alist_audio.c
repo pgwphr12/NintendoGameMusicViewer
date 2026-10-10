@@ -28,6 +28,7 @@
 #include "common.h"
 
 #include "alist.h"
+#include "../usf.h"
 #include "hle_internal.h"
 #include "memory.h"
 
@@ -269,6 +270,8 @@ static void POLEF(struct hle_t* hle, uint32_t w1, uint32_t w2)
 /* global functions */
 void alist_process_audio(struct hle_t* hle)
 {
+    if (hle->viewer && hle->viewer->supported)
+        hle->viewer->supported(hle->viewer->context);
     static const acmd_callback_t ABI[0x10] = {
         SPNOOP,         ADPCM ,         CLEARBUFF,      ENVMIXER,
         LOADBUFF,       RESAMPLE,       SAVEBUFF,       SEGMENT,
@@ -282,6 +285,8 @@ void alist_process_audio(struct hle_t* hle)
 
 void alist_process_audio_ge(struct hle_t* hle)
 {
+    if (hle->viewer && hle->viewer->supported)
+        hle->viewer->supported(hle->viewer->context);
     static const acmd_callback_t ABI[0x10] = {
         SPNOOP,         ADPCM ,         CLEARBUFF,      ENVMIXER_GE,
         LOADBUFF,       RESAMPLE,       SAVEBUFF,       SEGMENT,
@@ -295,6 +300,8 @@ void alist_process_audio_ge(struct hle_t* hle)
 
 void alist_process_audio_bc(struct hle_t* hle)
 {
+    if (hle->viewer && hle->viewer->supported)
+        hle->viewer->supported(hle->viewer->context);
     static const acmd_callback_t ABI[0x10] = {
         SPNOOP,         ADPCM ,         CLEARBUFF,      ENVMIXER_GE,
         LOADBUFF,       RESAMPLE,       SAVEBUFF,       SEGMENT,

@@ -349,7 +349,7 @@ struct GBASystem
     GBA::Gb_Apu*        gb_apu;
     GBA::Stereo_Buffer* stereo_buffer;
 
-    GBA::Blip_Synth<GBA::blip_best_quality,1> pcm_synth [3]; // 32 kHz, 16 kHz, 8 kHz
+    GBA::Blip_Synth<GBA::blip_best_quality,1> pcm_synth [16]; // source-rate reconstruction bank
 
     GBASystem();
 };

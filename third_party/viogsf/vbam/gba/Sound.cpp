@@ -32,6 +32,13 @@
 #define NR51 0x81
 #define NR52 0x84
 
+// Direct Sound is clocked by the game's timer, independently of the device rate.
+// The old three broad rate buckets applied the same kernel to very different PCM rates.
+static int const pcm_rates[16] = {
+    48000, 32768, 24000, 22050, 18000, 16384, 14000, 12000,
+    11025, 10512, 10000, 8192, 7000, 6000, 4096, 2048
+};
+
 static inline GBA::blip_time_t blip_time(GBASystem *gba)
 {
     return gba->SOUND_CLOCK_TICKS - gba->soundTicks;
@@ -102,12 +109,15 @@ void Gba_Pcm::update( int dac )
 				// base filtering on how long since last sample was output
 				blip_long period = time - last_time;
 
-				int idx = (unsigned) period / 512;
-				if ( idx >= 3 )
-					idx = 3;
-
-				static int const filters [4] = { 0, 0, 1, 2 };
-				filter = filters [idx];
+                if (period > 0) {
+                    unsigned source_rate = 16777216u / (unsigned)period;
+                    unsigned distance = ~0u;
+                    for (int i = 0; i < 16; ++i) {
+                        unsigned d = source_rate > (unsigned)pcm_rates[i]
+                            ? source_rate - pcm_rates[i] : pcm_rates[i] - source_rate;
+                        if (d < distance) { distance = d; filter = i; }
+                    }
+                }
 			}
 
             gba->pcm_synth [filter].offset( time, delta, output );
@@ -235,7 +245,7 @@ static void apply_volume( GBASystem *gba, bool apu_only = false )
 
 	if ( !apu_only )
 	{
-		for ( int i = 0; i < 3; i++ )
+		for ( int i = 0; i < 16; i++ )
             gba->pcm_synth [i].volume( 0.66 / 256 * gba->soundVolume_ );
 	}
 }
@@ -326,9 +336,9 @@ static void apply_filtering(GBASystem *gba)
     int const base_freq = (int) (32768 - gba->soundFiltering_ * 16384);
     blip_long const nyquist = gba->stereo_buffer->sample_rate() / 2;
 
-	for ( int i = 0; i < 3; i++ )
+	for ( int i = 0; i < 16; i++ )
 	{
-		blip_long cutoff = base_freq >> i;
+        blip_long cutoff = i == 0 ? base_freq : pcm_rates[i] / 2;
 		if ( cutoff > nyquist )
 			cutoff = nyquist;
         gba->pcm_synth [i].treble_eq( GBA::blip_eq_t( 0, 0, gba->stereo_buffer->sample_rate(), cutoff ) );

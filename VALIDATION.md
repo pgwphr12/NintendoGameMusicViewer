@@ -1,28 +1,12 @@
-# V1.1 안정성·폴더 재생 (1.1.0) 검증 기록 · 2026-10-10
+# V1.2 (1.2.0) 검증 기록 · 2026-10-10
 
-- DS 일회성 채널 종료 시 파형 버퍼 범위 초과 수정. 사용자 New Super Mario Bros. (EMU) 98 mini2SF의 첫 6초와 탐색/음소거 AddressSanitizer 검사 통과.
-- 폴더 자연 숫자 정렬, 라이브러리 제외, GBS/NSF 예외, 자동 다음 파일 및 이전/다음 키·버튼 검사 통과.
-- Windows x64, VS2022/MSVC 19.44, CMake에서 Release 빌드 성공.
-- CTest 5/5 통과: 자체 음악 fixtures 생성, 실제 core/audio/channel 테스트, native UI layout 및 fullscreen/mute click 테스트.
-- NSF/NSFE: 5개의 실제 voice, 두 트랙 전환, 채널 PCM 독립성, 무음 NOISE, 실제 mute 확인.
-- FDS NSF: 6 voice, FDS WAVE의 실제 PCM 에너지와 독립 파형 확인.
-- GBS: 4 voice, 실제 PCM 생성과 서로 다른 채널 확인.
-- SPC: 8 voice, 실제 PCM 생성과 서로 다른 두 voice 확인.
-- GBA/DS: 자체 ARM 드라이버의 GSF/miniGSF 및 2SF/mini2SF 실제 분리 채널 PCM, 메타데이터, 음소거, 탐색, 끝 검사.
-- N64/3DS: 자체 MIPS 드라이버 USF/miniUSF 및 PCM/DSP-ADPCM BCSTM/BCWAV 실제 독립 좌우 출력, 음소거, 탐색, 끝 검사.
-- DS 사용자 98 트랙은 제한된 구간을 검증했습니다. GBA/N64/3DS 상용 음악 덤프는 아직 검증하지 못했습니다. 전체 소스를 포함한 GPL-2.0-or-later 배포입니다.
-- 3DS 한글 파일명·경로의 PCM/DSP-ADPCM 열기 및 실제 오디오 출력 검사 통과.
-- 비정상/빈/잘린 파일 거부. NSFE 곡 이름·길이 메타데이터 확인.
-- 고정 48kHz 생성, 44.1/48/96kHz 출력 및 같은 소비 시각을 유지하는 레이트 전환 검사 통과.
-- SPSC 100,000 frames 순서/동시성 검사, high-frequency min/max envelope 및 silent baseline 검사 통과.
-- pause/resume/seek/stop/metadata 끝/replay, 개별 mute/volume 상태 검사 통과.
-- 실제 WASAPI 장치 경로에서도 동일 player 테스트 통과. 테스트 구간 rate change 후 underrun=0. 청취 품질의 주관적 평가나 모든 장치의 호환성을 확인했다는 뜻은 아님.
-- 실제 native GDI snapshot 1280×720, 1600×900, 1920×1080, 2560×1440, 3840×2160 및 recording view 생성·크기 검사 통과. FDS 및 SPC 화면을 직접 확인.
-- exe와 gme.dll 의존성 검사: Windows 시스템 DLL 외 gme.dll만 필요. 외부 VC 런타임/.NET 없음.
+- Release CTest 5/5: 실제 코어 PCM, 샘플레이트·피치·음량·잔향·탐색·끝, native UI·4K·음소거·폴더·자동재생 검사.
+- 새 회귀 검사: 10512/16384 Hz GBA PCM FIFO, 실제 N64 HLE envelope → interleave → save → DMA의 독립 신호·시간 정렬·잔여 데이터 제거, 3DS 5채널 track table의 stereo/mono 배치, sinc 다운샘플링 alias 억제.
+- 사용자 음악 140개: Super Mario 64 38개 USF, New Super Mario Bros. 2 99개 BCSTM, Super Mario Advance 4 3개 GSF의 첫 6초 및 탐색·전체 음소거 통과. 게임 음악은 배포에 포함하지 않습니다.
+- 메모리 검증: ASAN CTest 5/5, GBA/DS/N64 코어 및 앱 계측. 사용자 N64/GBA 표본의 동일 디코딩 검사 통과. 모든 재생 구간을 검증한 것은 아닙니다.
+- 복사한 portable의 한글 파일 경로 및 GBA/DS/N64/3DS 입력 실행 검사. ZIP CRC·소스 포함·SHA256 검사.
 
-GitHub Actions workflow는 제공하지만 실제 저장소에서 실행하지 않았습니다. 이 PC의 로컬 CMake/CTest만 실행했습니다. 제공된 FDS 두 파일의 81 tracks에서 첫 6초의 실제 mix/voice PCM과 seek/mute를 확인했습니다. 모든 구간을 확인한 것은 아닙니다. 제공된 Zelda MP4는 화면 참고 자료이며 소스 음악 파일이 아닙니다. 자체 제작 테스트 음악을 samples에 포함합니다.
-
-길이가 없는 파일의 자동 끝 검출, 검색/라이브러리, 생 레지스터/주파수 표시, hot-device 재연결, 3SF/BCSAR/BCSEQ는 미구현입니다. 개별 volume 변경은 isolated PCM의 합산이므로 비선형 믹서 상호작용이 원래 믹스와 달라질 수 있습니다. 자세한 제한은 README에 기록했습니다.
+GBA PCM 원본은 약 10.5kHz/8비트인 경우가 있으며, 96kHz 출력으로 대역폭을 복원하지 않습니다. N64는 Audio/NAudio 슬롯을 지원하고 다른 합성 방식은 stereo fallback입니다. 3DS에는 저장된 채널만 존재하며 이미 합쳐진 악기를 분리하지 않습니다. 48kHz 내부 시간축, 외부 영상 녹화, GPL 전체 소스 배포를 유지합니다. V1.1 DS one-shot 수정과 자동재생 기능을 포함합니다. 자세한 변경 및 제한은 README 및 docs/V1.2-AUDIO.md를 참조하세요.
 
 정식 V1 (1.0.0): 기본 전체 음량 100%, 0.1~3.0초 잔향 시간 조절, 원음이 끝난 뒤 0.5~1초 구간의 잔향 유지 및 짧은/긴 잔향 비교 검사 통과.
 V1.5: 반향 강도 0~100% 수치 조절, 반사음 진폭/에너지/범위 검사 통과. 녹화뷰 개별 음량 조작부 숨김과 전체 음량 유지를 native 화면으로 확인.
