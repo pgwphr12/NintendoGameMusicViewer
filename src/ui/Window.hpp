@@ -26,7 +26,7 @@ class Window {
     void nextTrack(int direction, bool automatic = false);
     bool recording_ = false, fullscreen_ = false;
     bool autoplay_ = true;
-    int page_ = 0, windowSamples_ = 2048;
+    int windowSamples_ = 2048;
     int speedStep_ = 10;
     RECT oldRect_{};
     std::wstring message_ = L"";

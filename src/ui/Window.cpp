@@ -1,4 +1,5 @@
 #include "Window.hpp"
+#include "ChannelLayout.hpp"
 #include "visualizer/Envelope.hpp"
 #include <algorithm>
 #include <chrono>
@@ -116,9 +117,9 @@ static void button(HDC dc, const wchar_t *s, int x, int y, int w, bool active = 
     fill(dc, {x, y, x + w, y + 50}, active ? RGB(31, 76, 76) : RGB(28, 34, 46));
     text(dc, s, x + 16, y, w - 28, 50, 20, active ? RGB(101, 237, 204) : RGB(214, 220, 235));
 }
-static void volumeButton(HDC dc, const wchar_t *label, int x, int y) {
-    fill(dc, {x, y, x + 32, y + 30}, RGB(28, 34, 46));
-    text(dc, label, x + 8, y, 24, 30, 20, RGB(214, 220, 235));
+static void volumeButton(HDC dc, const wchar_t *label, int x, int y, int size = 32) {
+    fill(dc, {x, y, x + size, y + size - 2}, RGB(28, 34, 46));
+    text(dc, label, x + size / 4, y, size * 3 / 4, size - 2, size * 5 / 8, RGB(214, 220, 235));
 }
 void Window::report(const std::exception &e) {
     message_ = wide(e.what());
@@ -142,9 +143,9 @@ void Window::open(const std::filesystem::path &p) {
         player_.open(p);
         file_ = p;
         SetWindowTextW(
-            hwnd_, (L"Nintendo Game Music Viewer · V1.2 — " + file_.filename().wstring()).c_str());
+            hwnd_, (L"Nintendo Game Music Viewer · V1.3 — " + file_.filename().wstring()).c_str());
         playlist_ = std::move(playlist);
-        page_ = 0;
+
         drag_ = -1;
         message_.clear();
 
@@ -162,8 +163,8 @@ void Window::selectFolder(size_t index, bool play) {
     playlist_.current = index;
     file_ = path;
     SetWindowTextW(hwnd_,
-                   (L"Nintendo Game Music Viewer · V1.2 — " + file_.filename().wstring()).c_str());
-    page_ = 0;
+                   (L"Nintendo Game Music Viewer · V1.3 — " + file_.filename().wstring()).c_str());
+
     drag_ = -1;
     message_.clear();
     if (play)
@@ -190,10 +191,11 @@ void Window::openDialog() {
     OPENFILENAMEW d{};
     d.lStructSize = sizeof d;
     d.hwndOwner = hwnd_;
-    d.lpstrFilter = L"게임 음악 "
-                    L"(*.nsf;*.nsfe;*.spc;*.gbs;*.gsf;*.minigsf;*.2sf;*.mini2sf;*.usf;*.miniusf;*."
-                    L"bcstm;*.bcwav)\0*.nsf;*.nsfe;*.spc;*.gbs;*.gsf;*.minigsf;*.2sf;*.mini2sf;*."
-                    L"usf;*.miniusf;*.bcstm;*.bcwav\0모든 파일\0*.*\0";
+    d.lpstrFilter =
+        L"게임 음악 "
+        L"(*.nsf;*.nsfe;*.spc;*.gbs;*.gsf;*.minigsf;*.2sf;*.mini2sf;*.usf;*.miniusf;*."
+        L"bcstm;*.bcwav;*.vgm;*.vgz)\0*.nsf;*.nsfe;*.spc;*.gbs;*.gsf;*.minigsf;*.2sf;*.mini2sf;*."
+        L"usf;*.miniusf;*.bcstm;*.bcwav;*.vgm;*.vgz\0모든 파일\0*.*\0";
     d.lpstrFile = path;
     d.nMaxFile = 32768;
     d.Flags = OFN_FILEMUSTEXIST | OFN_PATHMUSTEXIST | OFN_NOCHANGEDIR;
@@ -265,9 +267,8 @@ std::vector<size_t> Window::visibleChannels() const {
     std::vector<size_t> indices;
     const auto &channels = player_.channels();
     const bool dmcUsed = player_.dmcUsed();
-    const bool n64Voices = !channels.empty() && channels.back().name == "EFFECTS / OTHER";
     for (size_t i = 0; i < channels.size(); ++i)
-        if ((channels[i].name != "DMC" || dmcUsed) && (!n64Voices || player_.channelUsed(i)))
+        if (channels[i].name != "DMC" || dmcUsed)
             indices.push_back(i);
     return indices;
 }
@@ -300,8 +301,9 @@ void Window::paint(HDC dc, int width, int height) {
     text(dc, title, 42, 22, 1810, 62, 46, RGB(235, 240, 249), true);
     std::wstring game =
         info.game.empty()
-            ? (file_.empty() ? L"NSF · NSFE · SPC · GBS · GSF · 2SF · USF · BCSTM · BCWAV"
-                             : file_.stem().wstring())
+            ? (file_.empty()
+                   ? L"NSF · NSFE · SPC · GBS · GSF · 2SF · USF · BCSTM · BCWAV · VGM · VGZ"
+                   : file_.stem().wstring())
             : wide(info.game);
     text(dc,
          game + L"  /  " + wide(info.system) +
@@ -353,7 +355,6 @@ void Window::paint(HDC dc, int width, int height) {
         text(dc, decay, 1745, 205, 75, 50, 20, RGB(196, 208, 225));
         volumeButton(dc, L"+", 1830, 215);
     }
-    int top = recording_ ? 205 : 276, bottom = recording_ ? 1064 : 1000;
     const auto &channels = player_.channels();
     auto waves = player_.waveforms();
     auto states = player_.states();
@@ -361,41 +362,59 @@ void Window::paint(HDC dc, int width, int height) {
                                RGB(222, 146, 232), RGB(250, 155, 106), RGB(181, 211, 119),
                                RGB(126, 213, 228), RGB(247, 163, 181)};
     auto visible = visibleChannels();
-    page_ = std::min(page_, std::max(1, int((visible.size() + 7) / 8)) - 1);
-    size_t first = size_t(page_) * 8,
-           count = visible.size() > first ? std::min(size_t(8), visible.size() - first) : 0;
-    int lane = count ? (bottom - top) / int(count) : 100;
+
+    size_t count = visible.size();
     for (size_t i = 0; i < count; i++) {
-        size_t c = visible[first + i];
+        size_t c = visible[i];
         if (c >= waves.size() || c >= states.size() || c >= channels.size())
             continue;
-        int y = top + int(i) * lane;
-        fill(dc, {32, y, 1888, y + lane - 8}, i % 2 ? RGB(16, 22, 32) : RGB(18, 24, 35));
+        auto cell = channelCell(i, count, recording_);
+        int y = cell.y, lane = cell.height;
+        fill(dc, {cell.x, y, cell.x + cell.width, y + lane - 8},
+             i % 2 ? RGB(16, 22, 32) : RGB(18, 24, 35));
         float peak = 0;
         for (float v : waves[c])
             peak = std::max(peak, std::abs(v));
         COLORREF color = states[c].mute ? RGB(96, 103, 119) : colors[c % 8];
-        text(dc, channelLabel(channels[c].name, recording_), 54, y + (lane < 100 ? 5 : 15), 205,
-             lane < 100 ? 30 : 36, std::min(24, lane / 4), color, true);
-        std::wstring channelStatus;
-        if (recording_) {
-            if (states[c].mute)
-                channelStatus = L"MUTED";
-        } else {
-            channelStatus = (states[c].mute ? L"음소거 · " : L"") +
-                            std::to_wstring(int(std::round(states[c].volume * 100))) + L"%";
+        std::wstring label = channelLabel(channels[c].name, recording_);
+        if (cell.compact && channels[c].name == "EFFECTS / OTHER")
+            label = recording_ ? L"FX / OTHER" : L"잔향 / 기타";
+        if (cell.compact && !recording_)
+            label += L" " + std::to_wstring(int(std::round(states[c].volume * 100))) + L"%";
+        if (cell.compact && states[c].mute)
+            label += recording_ ? L" MUTED" : L" 음소거";
+        text(dc, label, cell.labelX(),
+             y + (cell.compact ? 2
+                  : lane < 100 ? 5
+                               : 15),
+             cell.split ? 140 : 205,
+             cell.compact ? 18
+             : lane < 100 ? 30
+                          : 36,
+             cell.compact ? 13 : std::min(cell.split ? 20 : 24, lane / 4), color, true);
+        if (!cell.compact) {
+            std::wstring status;
+            if (recording_) {
+                if (states[c].mute)
+                    status = L"MUTED";
+            } else
+                status = (states[c].mute ? L"음소거 · " : L"") +
+                         std::to_wstring(int(std::round(states[c].volume * 100))) + L"%";
+            if (!status.empty())
+                text(dc, status, cell.labelX(), y + (lane < 100 ? 35 : 48), cell.split ? 140 : 178,
+                     lane < 100 ? 14 : 22, lane < 100 ? 12 : 15, RGB(118, 136, 158));
         }
-        if (!channelStatus.empty())
-            text(dc, channelStatus, 54, y + (lane < 100 ? 35 : 48), 178, lane < 100 ? 14 : 22,
-                 lane < 100 ? 12 : 15, RGB(118, 136, 158));
         if (!recording_) {
-            volumeButton(dc, L"−", 54, y + lane - 40);
-            line(dc, 94, y + lane - 25, 190, y + lane - 25, RGB(47, 59, 78), 4);
-            line(dc, 94, y + lane - 25, 94 + int(96 * states[c].volume / 2), y + lane - 25, color,
-                 4);
-            volumeButton(dc, L"+", 202, y + lane - 40);
+            volumeButton(dc, L"−", cell.labelX(), cell.volumeY(), cell.buttonSize());
+            int sliderY = cell.volumeY() + cell.buttonSize() / 2;
+            line(dc, cell.sliderLeft(), sliderY, cell.sliderRight(), sliderY, RGB(47, 59, 78), 3);
+            line(dc, cell.sliderLeft(), sliderY,
+                 cell.sliderLeft() +
+                     int((cell.sliderRight() - cell.sliderLeft()) * states[c].volume / 2),
+                 sliderY, color, 3);
+            volumeButton(dc, L"+", cell.plusX(), cell.volumeY(), cell.buttonSize());
         }
-        int x0 = 280, x1 = 1856, center = y + (lane - 8) / 2;
+        int x0 = cell.waveLeft(), x1 = cell.waveRight(), center = y + (lane - 8) / 2;
         float amp = (lane - 22) * .44f;
         line(dc, x0, center, x1, center, RGB(44, 56, 73));
         for (int x = x0; x < x1; x += int((x1 - x0) / 8))
@@ -429,7 +448,7 @@ void Window::paint(HDC dc, int width, int height) {
     if (!recording_ && player_.error().empty())
         text(dc,
              L"Ctrl+O 열기  ·  Space 재생/일시정지  ·  ←/→ Track 전환  ·  F9 녹화 화면  ·  "
-             L"F11 전체 화면  ·  Esc 복원  ·  +/- 시간축  ·  PageUp/Down 채널  ·  A 자동재생",
+             L"F11 전체 화면  ·  Esc 복원  ·  +/- 시간축  ·  A 자동재생",
              42, 1040, 1840, 30, 18, RGB(112, 130, 153));
     if (!player_.error().empty())
         text(dc, (recording_ ? L"Error: " : L"오류: ") + wide(player_.error()), 42, 1048, 1800, 28,
@@ -447,7 +466,14 @@ void Window::mouseMove(int x, int y) {
     else {
         auto states = player_.states();
         if (size_t(drag_) < states.size()) {
-            states[drag_].volume = std::clamp(2 * (lx - 94) / 96.f, 0.f, 2.f);
+            auto visible = visibleChannels();
+            auto found = std::find(visible.begin(), visible.end(), size_t(drag_));
+            if (found == visible.end())
+                return;
+            auto cell = channelCell(size_t(found - visible.begin()), visible.size(), recording_);
+            states[drag_].volume = std::clamp(2.f * (lx - cell.sliderLeft()) /
+                                                  (cell.sliderRight() - cell.sliderLeft()),
+                                              0.f, 2.f);
             player_.channel(drag_, states[drag_]);
         }
     }
@@ -532,40 +558,38 @@ void Window::click(int x, int y) {
                 player_.seek(int(std::clamp((lx - 42) / 1840., 0., 1.) * t.lengthMs));
             return;
         }
-        int top = recording_ ? 205 : 276, bottom = recording_ ? 1064 : 1000;
         auto states = player_.states();
         auto visible = visibleChannels();
-        size_t first = page_ * 8,
-               count = visible.size() > first ? std::min(size_t(8), visible.size() - first) : 0;
-        if (count && ly >= top && ly < bottom && lx >= 32 && lx < 255) {
-            int lane = (bottom - top) / int(count);
-            size_t slot = first + (ly - top) / lane;
-            if (slot >= first + count)
-                return;
+        for (size_t slot = 0; slot < visible.size(); ++slot) {
+            auto cell = channelCell(slot, visible.size(), recording_);
+            if (ly < cell.y || ly >= cell.y + cell.height - 8 || lx < cell.x ||
+                lx >= cell.waveLeft() - 12)
+                continue;
             size_t i = visible[slot];
             if (i >= states.size())
                 return;
-            int localY = (ly - top) % lane;
-            if (!recording_ && localY >= lane - 40 && localY < lane - 10) {
-                if (lx >= 54 && lx < 86) {
+            if (!recording_ && ly >= cell.volumeY() && ly < cell.volumeY() + cell.buttonSize()) {
+                if (lx >= cell.labelX() && lx < cell.labelX() + cell.buttonSize()) {
                     states[i].volume =
                         std::clamp((std::lround(states[i].volume * 100) - 5) / 100.f, 0.f, 2.f);
                     player_.channel(i, states[i]);
-                } else if (lx >= 202 && lx < 234) {
+                } else if (lx >= cell.plusX() && lx < cell.plusX() + cell.buttonSize()) {
                     states[i].volume =
                         std::clamp((std::lround(states[i].volume * 100) + 5) / 100.f, 0.f, 2.f);
                     player_.channel(i, states[i]);
-                } else if (lx >= 94 && lx < 190) {
+                } else if (lx >= cell.sliderLeft() && lx < cell.sliderRight()) {
                     drag_ = int(i);
                     SetCapture(hwnd_);
                     mouseMove(x, y);
                 }
-            } else if (localY < (lane < 100 ? 36 : 51)) {
+            } else if (ly - cell.y < (cell.compact ? 20 : cell.height < 100 ? 36 : 51)) {
                 states[i].mute = !states[i].mute;
                 player_.channel(i, states[i]);
             }
             InvalidateRect(hwnd_, nullptr, FALSE);
+            return;
         }
+
     } catch (const std::exception &e) {
         report(e);
     }
@@ -822,10 +846,6 @@ LRESULT Window::event(UINT m, WPARAM a, LPARAM b) {
                 windowSamples_ = std::max(256, windowSamples_ / 2);
             else if (a == VK_OEM_MINUS)
                 windowSamples_ = std::min(4096, windowSamples_ * 2);
-            else if (a == VK_NEXT)
-                page_ = (page_ + 1) % std::max(1, int((visibleChannels().size() + 7) / 8));
-            else if (a == VK_PRIOR)
-                page_ = std::max(0, page_ - 1);
             else if (a == VK_LEFT && player_.loaded())
                 nextTrack(-1);
             else if (a == VK_RIGHT && player_.loaded())
@@ -860,7 +880,7 @@ int Window::run(HINSTANCE instance, const std::filesystem::path &initial,
     RegisterClassW(&wc);
     RECT r{0, 0, width, height};
     AdjustWindowRect(&r, WS_OVERLAPPEDWINDOW, FALSE);
-    hwnd_ = CreateWindowW(wc.lpszClassName, L"Nintendo Game Music Viewer · V1.2",
+    hwnd_ = CreateWindowW(wc.lpszClassName, L"Nintendo Game Music Viewer · V1.3",
                           WS_OVERLAPPEDWINDOW, screenshot.empty() ? CW_USEDEFAULT : -20000,
                           screenshot.empty() ? CW_USEDEFAULT : -20000, r.right - r.left,
                           r.bottom - r.top, nullptr, nullptr, instance, this);

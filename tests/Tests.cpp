@@ -7,6 +7,7 @@ extern "C" {
 #include "core/IMusicBackend.hpp"
 #include "player/FolderPlaylist.hpp"
 #include "player/Player.hpp"
+#include "ui/ChannelLayout.hpp"
 #include "visualizer/Envelope.hpp"
 #include <chrono>
 #include <cmath>
@@ -24,6 +25,70 @@ static double energy(const std::vector<Stereo> &s) {
     for (auto v : s)
         e += v.l * v.l + v.r * v.r;
     return e / std::max(size_t(1), s.size());
+}
+static void segaTests(const std::filesystem::path &root) {
+    for (auto pair : {std::make_pair("sms.vgm", 4),
+                      {"sms.vgz", 4},
+                      {"sms-fm.vgm", 18},
+                      {"sms-rhythm.vgm", 18},
+                      {"md.vgm", 11},
+                      {"md.vgz", 11}}) {
+        auto backend = makeBackend(readMusicFile(root / pair.first), root / pair.first);
+        require(backend->channels().size() == size_t(pair.second),
+                "Sega channels not declared at load");
+        AudioBlock out;
+        for (int i = 0; i < 24; ++i)
+            backend->render(512, out);
+        require(energy(out.mix) > 1e-5, "Sega mix silent");
+        for (size_t v : {size_t(0), size_t(1)})
+            require(energy(out.voices[v]) > 1e-7, "Sega independent FM/PSG voice silent");
+        if (pair.second == 11) {
+            require(energy(out.voices[6]) > 1e-7 && energy(out.voices[7]) > 1e-7,
+                    "Genesis DAC/PSG not independently captured");
+        }
+        if (std::string(pair.first) == "sms-rhythm.vgm")
+            for (size_t v = 9; v < 14; ++v)
+                require(energy(out.voices[v]) > 1e-9, "SMS rhythm voice silent");
+        backend->muteMask((1u << pair.second) - 1);
+        for (int i = 0; i < 12; ++i)
+            backend->render(512, out);
+        require(energy(out.mix) < 1e-7 && energy(out.voices[0]) > 1e-7,
+                "Sega mute lost waveform or retained audio");
+        backend->muteMask(0);
+        backend->seek(100);
+        backend->render(512, out);
+        require(energy(out.mix) > 1e-7, "Sega seek lost sound");
+        std::cout << pair.first << " independent voices, all mute, seek: PASS\n";
+    }
+    for (auto name :
+         {"bad-truncated.vgm", "bad-stream.vgm", "bad-pcm.vgm", "bad-no-end.vgm", "bad-crc.vgz"}) {
+        bool failed = false;
+        try {
+            auto backend = makeBackend(readMusicFile(root / name), root / name);
+        } catch (const std::exception &) {
+            failed = true;
+        }
+        require(failed, "Malformed VGM/VGZ accepted");
+    }
+    auto list = FolderPlaylist::scan(root / "playlist-sega/02 Track.vgz", Format::Vgm);
+    require(list.files.size() == 3 && list.current == 1 &&
+                list.files[2].filename() == "10 Track.vgm",
+            "VGM/VGZ folder order failed");
+    for (size_t count : {size_t(4), size_t(8), size_t(11), size_t(16), size_t(18), size_t(31)})
+        for (bool recording : {false, true})
+            for (size_t i = 0; i < count; ++i) {
+                auto cell = channelCell(i, count, recording);
+                require(cell.y >= (recording ? 205 : 276) &&
+                            cell.y + cell.height <= (recording ? 1064 : 1000),
+                        "Channel clipped below screen");
+                require(cell.waveRight() > cell.waveLeft() &&
+                            cell.volumeY() + cell.buttonSize() <= cell.y + cell.height,
+                        "Channel controls clipped");
+                if (count > 8)
+                    require(cell.x == (i < (count + 1) / 2 ? 32 : 976),
+                            "Channels not divided down center");
+            }
+    std::cout << "Sega invalid input, mixed folder order, all channel geometry: PASS\n";
 }
 static void newAudioTests(const std::filesystem::path &root) {
     auto gba = makeBackend(readMusicFile(root / "pcm.gsf"), root / "pcm.gsf");
@@ -632,6 +697,14 @@ static void playerTests(const std::filesystem::path &root) {
     p.open(root / "channels.spc");
     require(!p.dmcUsed(), "New file retained previous DMC activity");
     require(p.outputGain() > 3.16f && p.outputGain() < 3.17f, "SPC gain not applied by player");
+    p.open(root / "md.vgm");
+    require(p.channels().size() == 11, "Genesis player did not declare channels at load");
+    p.play();
+    std::this_thread::sleep_for(std::chrono::milliseconds(350));
+    p.pause();
+    require(p.seconds() > .1 && p.error().empty() && p.underruns() == 0,
+            "Genesis worker/device playback failed");
+    p.stop();
     std::cout << "Actual SDL callback, pause/resume, rate switch, channel controls, seek, stop, "
                  "metadata end and replay: PASS\n";
 }
@@ -640,6 +713,7 @@ int main(int argc, char **argv) {
         require(argc == 2, "Fixture directory required");
         std::filesystem::path root = argv[1];
         formatTests(root);
+        segaTests(root);
         newAudioTests(root);
         psfTests(root);
         folderPlaylistTests(root);

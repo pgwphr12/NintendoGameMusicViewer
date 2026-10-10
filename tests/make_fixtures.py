@@ -85,3 +85,4 @@ header=bytearray(base[:128]);struct.pack_into('<H',header,12,new_play)
 # PSF variants and original ARM fixtures share the same output directory.
 import subprocess
 subprocess.run([sys.executable,str(Path(__file__).with_name("make_psf_fixtures.py")),str(out)],check=True)
+subprocess.run([sys.executable,str(Path(__file__).with_name("make_sega_fixtures.py")),str(out)],check=True)

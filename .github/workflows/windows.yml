@@ -16,25 +16,17 @@ jobs:
         run: cmake --build build --config Release --parallel 4
       - name: Test actual music cores and audio callbacks
         run: ctest --test-dir build -C Release --output-on-failure --output-junit test-results.xml
-      - name: Install portable application
-        run: cmake --install build --config Release --component Runtime --prefix dist/NintendoGameMusicViewer
-      - name: Package sources, replaceable core and licenses
-        shell: pwsh
-        run: |
-          Copy-Item -LiteralPath src,tests,third_party,docs,.github,CMakeLists.txt,.clang-format -Destination dist/NintendoGameMusicViewer -Recurse
-          New-Item -ItemType Directory -Path dist/NintendoGameMusicViewer/samples -Force | Out-Null
-          Copy-Item build/fixtures/channels.nsf dist/NintendoGameMusicViewer/samples/Original-Channel-Test.nsf
-          Copy-Item build/fixtures/fds.nsf dist/NintendoGameMusicViewer/samples/Original-FDS-Test.nsf
-          Copy-Item build/fixtures/channels.gsf dist/NintendoGameMusicViewer/samples/Original-GBA-Test.gsf
-          Copy-Item build/fixtures/channels.2sf dist/NintendoGameMusicViewer/samples/Original-DS-Test.2sf
-          Copy-Item build/fixtures/channels.usf dist/NintendoGameMusicViewer/samples/Original-N64-Test.usf
-          Copy-Item build/fixtures/channels.bcstm dist/NintendoGameMusicViewer/samples/Original-3DS-PCM-Test.bcstm
-          Copy-Item build/fixtures/channels.bcwav dist/NintendoGameMusicViewer/samples/Original-3DS-ADPCM-Test.bcwav
-          Compress-Archive -Path dist/NintendoGameMusicViewer -DestinationPath NintendoGameMusicViewer-Windows-x64.zip
+      - name: Package separate runtime and corresponding source
+        run: python tools/package.py --build build --output dist
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: NintendoGameMusicViewer-Windows-x64
-          path: NintendoGameMusicViewer-Windows-x64.zip
+          path: dist/NintendoGameMusicViewer-V1.3-Windows-x64.zip
+          if-no-files-found: error
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: NintendoGameMusicViewer-source
+          path: dist/NintendoGameMusicViewer-V1.3-source.zip
           if-no-files-found: error
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         if: always()

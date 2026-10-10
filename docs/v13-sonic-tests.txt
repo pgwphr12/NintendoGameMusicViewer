@@ -1,0 +1,105 @@
+FILE 01 - Title Theme.vgm tracks=1 voices=11
+Track 1 mix_energy=6551.76 | FM 1=500.519 | FM 2=1982.33 | FM 3=533.618 | FM 4=624.205 | FM 5=353.816 | FM 6=0 | DAC=2461.28 | PSG 1=0 | PSG 2=0 | PSG 3=0 | PSG NOISE=7.49177
+Seek, replay and all-channel mute: PASS
+FILE 02 - Green Hill Zone.vgm tracks=1 voices=11
+Track 1 mix_energy=7316.52 | FM 1=1033.56 | FM 2=1249.33 | FM 3=1200.41 | FM 4=389.14 | FM 5=390.39 | FM 6=0 | DAC=2205.28 | PSG 1=727.709 | PSG 2=266.889 | PSG 3=0 | PSG NOISE=15.4531
+Seek, replay and all-channel mute: PASS
+FILE 03 - Marble Zone.vgm tracks=1 voices=11
+Track 1 mix_energy=3812.71 | FM 1=228.649 | FM 2=828.802 | FM 3=229.296 | FM 4=270.123 | FM 5=145.936 | FM 6=0 | DAC=1811.13 | PSG 1=0 | PSG 2=0 | PSG 3=0 | PSG NOISE=124.174
+Seek, replay and all-channel mute: PASS
+FILE 04 - Spring Yard Zone.vgm tracks=1 voices=11
+Track 1 mix_energy=4268.31 | FM 1=385.277 | FM 2=1706.65 | FM 3=40.6209 | FM 4=165.493 | FM 5=165.346 | FM 6=0 | DAC=1679.71 | PSG 1=125.608 | PSG 2=0 | PSG 3=0 | PSG NOISE=2.14457
+Seek, replay and all-channel mute: PASS
+FILE 05 - Labyrinth Zone.vgm tracks=1 voices=11
+Track 1 mix_energy=3397.28 | FM 1=439.634 | FM 2=902.09 | FM 3=31.6935 | FM 4=31.6802 | FM 5=123.896 | FM 6=0 | DAC=1522.84 | PSG 1=159.463 | PSG 2=157.183 | PSG 3=0 | PSG NOISE=15.6614
+Seek, replay and all-channel mute: PASS
+FILE 06 - Star Light Zone.vgm tracks=1 voices=11
+Track 1 mix_energy=4560.97 | FM 1=570.519 | FM 2=2058.6 | FM 3=97.3226 | FM 4=100.281 | FM 5=86.6065 | FM 6=0 | DAC=1365.92 | PSG 1=73.2785 | PSG 2=73.6432 | PSG 3=0 | PSG NOISE=9.48547
+Seek, replay and all-channel mute: PASS
+FILE 07 - Scrap Brain Zone.vgm tracks=1 voices=11
+Track 1 mix_energy=6184 | FM 1=893.509 | FM 2=1659.93 | FM 3=836.681 | FM 4=89.7977 | FM 5=89.8606 | FM 6=0 | DAC=1409.19 | PSG 1=365.263 | PSG 2=486.969 | PSG 3=0 | PSG NOISE=9.56734
+Seek, replay and all-channel mute: PASS
+FILE 08 - Special Stage.vgm tracks=1 voices=11
+Track 1 mix_energy=3803.82 | FM 1=719.451 | FM 2=841.657 | FM 3=444.615 | FM 4=220.592 | FM 5=218.753 | FM 6=706.614 | DAC=0 | PSG 1=113.608 | PSG 2=537.945 | PSG 3=0 | PSG NOISE=0
+Seek, replay and all-channel mute: PASS
+FILE 09 - Robotnik.vgm tracks=1 voices=11
+Track 1 mix_energy=5901.41 | FM 1=525.762 | FM 2=2506.1 | FM 3=121.284 | FM 4=262.767 | FM 5=461.142 | FM 6=0 | DAC=1854.82 | PSG 1=288.818 | PSG 2=149.865 | PSG 3=0 | PSG NOISE=0
+Seek, replay and all-channel mute: PASS
+FILE 10 - Final Zone.vgm tracks=1 voices=11
+Track 1 mix_energy=6363.02 | FM 1=740.318 | FM 2=1172.73 | FM 3=854.462 | FM 4=680.232 | FM 5=739.437 | FM 6=0 | DAC=2214.13 | PSG 1=0 | PSG 2=0 | PSG 3=0 | PSG NOISE=0
+Seek, replay and all-channel mute: PASS
+FILE 11 - Stage Clear.vgm tracks=1 voices=11
+Track 1 mix_energy=6274.13 | FM 1=992.879 | FM 2=2089.77 | FM 3=129.337 | FM 4=127.159 | FM 5=515.007 | FM 6=0 | DAC=1915.52 | PSG 1=192.505 | PSG 2=72.2458 | PSG 3=0 | PSG NOISE=0
+Seek, replay and all-channel mute: PASS
+FILE 12 - Ending Theme.vgm tracks=1 voices=11
+Track 1 mix_energy=5884.77 | FM 1=295.03 | FM 2=1612.15 | FM 3=492.812 | FM 4=484.333 | FM 5=294.687 | FM 6=0 | DAC=2636.49 | PSG 1=0 | PSG 2=0 | PSG 3=0 | PSG NOISE=13.6823
+Seek, replay and all-channel mute: PASS
+FILE 13 - Staff Roll.vgm tracks=1 voices=11
+Track 1 mix_energy=5504.19 | FM 1=672.626 | FM 2=1311.59 | FM 3=0 | FM 4=390.596 | FM 5=426.673 | FM 6=0 | DAC=2466.05 | PSG 1=196.028 | PSG 2=0 | PSG 3=0 | PSG NOISE=15.4631
+Seek, replay and all-channel mute: PASS
+FILE 14 - Invincibility.vgm tracks=1 voices=11
+Track 1 mix_energy=6265.04 | FM 1=280.311 | FM 2=2090.57 | FM 3=435.973 | FM 4=431.49 | FM 5=279.9 | FM 6=0 | DAC=2784.05 | PSG 1=0 | PSG 2=0 | PSG 3=0 | PSG NOISE=13.0847
+Seek, replay and all-channel mute: PASS
+FILE 15 - 1-up.vgm tracks=1 voices=11
+Track 1 mix_energy=2646.37 | FM 1=239.119 | FM 2=243.197 | FM 3=80.3778 | FM 4=238.655 | FM 5=80.2557 | FM 6=0 | DAC=1522.08 | PSG 1=61.3009 | PSG 2=0 | PSG 3=0 | PSG NOISE=0
+Seek, replay and all-channel mute: PASS
+FILE 16 - Chaos Emerald.vgm tracks=1 voices=11
+Track 1 mix_energy=2328.8 | FM 1=502.212 | FM 2=513.441 | FM 3=596.177 | FM 4=184.454 | FM 5=183.456 | FM 6=184.634 | DAC=0 | PSG 1=51.7755 | PSG 2=124.478 | PSG 3=0 | PSG NOISE=0
+Seek, replay and all-channel mute: PASS
+FILE 17 - Drowning.vgm tracks=1 voices=11
+Track 1 mix_energy=6534.71 | FM 1=3163.22 | FM 2=2356.32 | FM 3=3.94549 | FM 4=134.09 | FM 5=82.461 | FM 6=0 | DAC=1076.06 | PSG 1=0 | PSG 2=0 | PSG 3=0 | PSG NOISE=0
+Seek, replay and all-channel mute: PASS
+FILE 18 - Continue.vgm tracks=1 voices=11
+Track 1 mix_energy=6465.01 | FM 1=925.075 | FM 2=2316.3 | FM 3=545.42 | FM 4=552.478 | FM 5=0 | FM 6=0 | DAC=2144.28 | PSG 1=0 | PSG 2=0 | PSG 3=0 | PSG NOISE=0
+Seek, replay and all-channel mute: PASS
+FILE 19 - Game Over.vgm tracks=1 voices=11
+Track 1 mix_energy=2213.95 | FM 1=892.53 | FM 2=183.934 | FM 3=194.314 | FM 4=439.2 | FM 5=71.064 | FM 6=0 | DAC=529.454 | PSG 1=0 | PSG 2=0 | PSG 3=0 | PSG NOISE=0
+Seek, replay and all-channel mute: PASS
+FILE Sonic The Hedgehog - 01 - Title Screen.vgm tracks=1 voices=4
+Track 1 mix_energy=3561.47 | PSG 1=1091.49 | PSG 2=1550.61 | PSG 3=537.287 | PSG NOISE=356.768
+Seek, replay and all-channel mute: PASS
+FILE Sonic The Hedgehog - 02 - Act Start.vgm tracks=1 voices=4
+Track 1 mix_energy=2532.11 | PSG 1=858.251 | PSG 2=858.164 | PSG 3=833.25 | PSG NOISE=0
+Seek, replay and all-channel mute: PASS
+FILE Sonic The Hedgehog - 03 - Green Hill Zone.vgm tracks=1 voices=4
+Track 1 mix_energy=4499.08 | PSG 1=1415.7 | PSG 2=2175.27 | PSG 3=486.42 | PSG NOISE=456.637
+Seek, replay and all-channel mute: PASS
+FILE Sonic The Hedgehog - 04 - Invincible.vgm tracks=1 voices=4
+Track 1 mix_energy=7111.33 | PSG 1=1284.43 | PSG 2=4854.68 | PSG 3=508.753 | PSG NOISE=480.599
+Seek, replay and all-channel mute: PASS
+FILE Sonic The Hedgehog - 05 - Bridge Zone.vgm tracks=1 voices=4
+Track 1 mix_energy=3934.54 | PSG 1=1228 | PSG 2=2141.14 | PSG 3=194.784 | PSG NOISE=402.698
+Seek, replay and all-channel mute: PASS
+FILE Sonic The Hedgehog - 06 - Chaos Emerald.vgm tracks=1 voices=4
+Track 1 mix_energy=7748.74 | PSG 1=2028.4 | PSG 2=4413.46 | PSG 3=1330.71 | PSG NOISE=0
+Seek, replay and all-channel mute: PASS
+FILE Sonic The Hedgehog - 07 - Jungle Zone.vgm tracks=1 voices=4
+Track 1 mix_energy=6762.88 | PSG 1=1659.86 | PSG 2=3816.44 | PSG 3=806.146 | PSG NOISE=546.043
+Seek, replay and all-channel mute: PASS
+FILE Sonic The Hedgehog - 08 - Bonus Zone.vgm tracks=1 voices=4
+Track 1 mix_energy=7639.96 | PSG 1=1775.72 | PSG 2=4509.07 | PSG 3=724.91 | PSG NOISE=715.342
+Seek, replay and all-channel mute: PASS
+FILE Sonic The Hedgehog - 09 - Labyrinth Zone.vgm tracks=1 voices=4
+Track 1 mix_energy=5983.62 | PSG 1=1420.41 | PSG 2=3629.35 | PSG 3=592.26 | PSG NOISE=424.996
+Seek, replay and all-channel mute: PASS
+FILE Sonic The Hedgehog - 10 - Act Complete.vgm tracks=1 voices=4
+Track 1 mix_energy=3030.15 | PSG 1=821.465 | PSG 2=1205.66 | PSG 3=539.857 | PSG NOISE=341.786
+Seek, replay and all-channel mute: PASS
+FILE Sonic The Hedgehog - 11 - Scrap Brain Zone.vgm tracks=1 voices=4
+Track 1 mix_energy=5198.32 | PSG 1=1144.14 | PSG 2=2805.4 | PSG 3=760.74 | PSG NOISE=575.446
+Seek, replay and all-channel mute: PASS
+FILE Sonic The Hedgehog - 12 - Sky Base Zone.vgm tracks=1 voices=4
+Track 1 mix_energy=10294.9 | PSG 1=3606.33 | PSG 2=5375.56 | PSG 3=822.739 | PSG NOISE=578.884
+Seek, replay and all-channel mute: PASS
+FILE Sonic The Hedgehog - 13 - Boss Theme.vgm tracks=1 voices=4
+Track 1 mix_energy=6889.14 | PSG 1=2322.15 | PSG 2=3660.81 | PSG 3=439.568 | PSG NOISE=524.096
+Seek, replay and all-channel mute: PASS
+FILE Sonic The Hedgehog - 14 - Death.vgm tracks=1 voices=4
+Track 1 mix_energy=2839.96 | PSG 1=827.272 | PSG 2=1129.93 | PSG 3=469.673 | PSG NOISE=395.037
+Seek, replay and all-channel mute: PASS
+FILE Sonic The Hedgehog - 15 - Ending.vgm tracks=1 voices=4
+Track 1 mix_energy=4452.68 | PSG 1=1080.33 | PSG 2=2306.16 | PSG 3=772.569 | PSG NOISE=409.048
+Seek, replay and all-channel mute: PASS
+FILE Sonic The Hedgehog - 16 - Marble Zone (unused).vgm tracks=1 voices=4
+Track 1 mix_energy=4349.14 | PSG 1=1288.57 | PSG 2=2216.6 | PSG 3=397.047 | PSG NOISE=358.083
+Seek, replay and all-channel mute: PASS

@@ -55,12 +55,12 @@ try:
         x=int((rect.right-1920*scale)/2+logical_x*scale);y=int((rect.bottom-1080*scale)/2+166*scale)
         user.SendMessageW(hwnd,0x201,1,x|(y<<16));user.SendMessageW(hwnd,0x202,0,x|(y<<16))
         assert expected+' Track.mini2sf' in title(),title()
-    user.SendMessageW(hwnd,0x100,0x22,0) # page down: channels 9-16
+    # All 16 DS channels are displayed together.
     user.SendMessageW(hwnd,0x100,0x78,0) # recording view
     user.SendMessageW(hwnd,0xf,0,0)
     user.SendMessageW(hwnd,0x10,0,0)
     assert process.wait(timeout=15)==0
-    print('DS automatic folder advance, natural order, previous/next keys/buttons and wrap and page/recording repaint: PASS')
+    print('DS automatic folder advance, natural order, previous/next keys/buttons and recording repaint: PASS')
 finally:
     if process.poll() is None: process.terminate();process.wait(timeout=5)
 
@@ -108,5 +108,38 @@ try:
     user.SendMessageW(hwnd,0x10,0,0)
     assert process.wait(timeout=5)==0
     print('Autoplay button off/on, manual navigation while off, and recording-view A toggle: PASS')
+finally:
+    if process.poll() is None:process.terminate();process.wait(timeout=5)
+
+# VGM command durations drive the same folder transport, including mixed VGZ.
+process=subprocess.Popen([str(exe),str(root/'playlist-sega/01 Track.vgm')],env=dict(os.environ,SDL_AUDIODRIVER='dummy'),startupinfo=startup)
+try:
+    hwnd=None
+    for _ in range(200):
+        matches=[]
+        @callback
+        def visit(w,_):
+            pid=wintypes.DWORD();user.GetWindowThreadProcessId(w,ctypes.byref(pid))
+            name=ctypes.create_unicode_buffer(128);user.GetClassNameW(w,name,128)
+            if pid.value==process.pid and name.value=='NintendoGameMusicViewerWindow':matches.append(w)
+            return True
+        user.EnumWindows(visit,0)
+        if matches:
+            hwnd=matches[0]
+            if '01 Track.vgm' in title():break
+        time.sleep(.01)
+    assert hwnd and '01 Track.vgm' in title()
+    user.SendMessageW(hwnd,0x100,0x20,0)
+    for _ in range(200):
+        if '02 Track.vgz' in title():break
+        assert process.poll() is None
+        time.sleep(.01)
+    assert '02 Track.vgz' in title(),title()
+    user.SendMessageW(hwnd,0x100,0x20,0)
+    user.SendMessageW(hwnd,0x100,0x27,0)
+    assert '10 Track.vgm' in title(),title()
+    user.SendMessageW(hwnd,0x10,0,0)
+    assert process.wait(timeout=5)==0
+    print('VGM first-pass duration, folder autoplay to VGZ and manual natural order: PASS')
 finally:
     if process.poll() is None:process.terminate();process.wait(timeout=5)

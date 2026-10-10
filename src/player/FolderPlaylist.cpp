@@ -13,6 +13,8 @@ FolderPlaylist FolderPlaylist::scan(const std::filesystem::path &file, Format fo
         std::transform(ext.begin(), ext.end(), ext.begin(),
                        [](wchar_t c) { return std::towlower(c); });
         switch (format) {
+        case Format::Vgm:
+            return ext == L".vgm" || ext == L".vgz";
         case Format::Spc:
             return ext == L".spc";
         case Format::Gsf:

@@ -1,10 +1,10 @@
-# Nintendo Game Music Viewer V1.2 (1.2.0)
+# Nintendo Game Music Viewer V1.3 (1.3.0)
 
 A new C++17 native Windows game-music player with real independent channel scopes. No Mesen or earlier NTSC application code is included. No game ROM execution or game-screen functionality is exposed. The separate music core necessarily simulates the hardware needed to execute music drivers.
 
 Extract the entire portable package and run NintendoGameMusicViewer.exe on Windows 10/11 x64. Keep gme.dll beside the executable. No .NET, Python, CMake, Visual Studio or FFmpeg installation is needed to run the player.
 
-Open or drop NSF/NSFE/SPC/GBS/GSF/2SF/USF/BCSTM/BCWAV. Select an internal track with the track menu. Space pauses/resumes; arrow keys switch tracks; Ctrl+O opens a file. Click a channel label to mute and its slider to change volume. F9 toggles recording view; F11 fullscreen; Esc exits fullscreen. +/- changes scope time scale, PageUp/PageDown shows additional voices. The output-rate menu selects 16000/22050/32000/44100/48000/96000 Hz. The master slider is separate. A metadata-defined duration enables the progress/seek bar; unknown lengths remain unknown and require manual stopping. Repeat restarts the current track at a metadata-defined end.
+Open or drop NSF/NSFE/SPC/GBS/GSF/2SF/USF/BCSTM/BCWAV/VGM/VGZ. Select an internal track with the track menu. Space pauses/resumes; arrow keys switch tracks; Ctrl+O opens a file. Click a channel label to mute and its slider to change volume. F9 toggles recording view; F11 fullscreen; Esc exits fullscreen. +/- changes scope time scale, More than eight channels are shown together in two columns divided down the center. The output-rate menu selects 16000/22050/32000/44100/48000/96000 Hz. The master slider is separate. A metadata-defined duration enables the progress/seek bar; unknown lengths remain unknown and require manual stopping. Repeat restarts the current track at a metadata-defined end.
 
 The client defaults to 1280x720 with a 1920x1080 logical canvas, 16:9 letterboxing and native double-buffered GDI drawing. Recording is external (OBS etc.). There is no built-in video exporter, search library, raw register/frequency display, automatic unknown-length detection or 3SF support.
 
@@ -16,7 +16,7 @@ The producer renders at fixed 48kHz into a bounded SPSC audio ring; device callb
 
 Changing output rate prepares a replacement device before closing the old one and retains core position/history. Single-device drivers briefly close/reopen output while retaining the sample clock and queued audio. A failed new-format open restores the previous settings and reports the error. Short hardware transition latency is possible; arbitrary device hot removal/default-device changes are not automatically reconnected. Output conversion uses a 32-tap windowed-sinc low-pass filter; it cannot restore information missing from the source PCM. Track changes and seek reset queues; long seeks can block while music cores compute skipped playback.
 
-Upload this whole folder to a GitHub repository root. The Windows-2022 Actions workflow uses runner-provided VS2022/CMake/Python to configure, build, test real cores and callbacks, install and upload NintendoGameMusicViewer-Windows-x64.zip. Actual GitHub execution must be verified after upload. Third-party sources are bundled and pinned by SHA256, so dependency fetching is not required in CI. Local rebuilding is optional:
+Upload the full source folder from the source ZIP to a GitHub repository root. The Windows-2022 Actions workflow uses runner-provided VS2022/CMake/Python to configure, build, test real cores and callbacks, install and upload separate V1.3 runtime and corresponding-source ZIPs. Actual GitHub execution must be verified after upload. Third-party sources are bundled and pinned by SHA256, so dependency fetching is not required in CI. Local rebuilding is optional:
 
 ```powershell
 cmake -S . -B build -G "Visual Studio 17 2022" -A x64
@@ -70,11 +70,11 @@ Reverb leaves a decaying tail after source notes end. Decay time is adjustable f
 
 Supports all seven target systems through specific music formats: NES NSF/NSFE, SNES SPC, GB GBS, GBA GSF/miniGSF, DS 2SF/mini2SF, N64 USF/miniUSF and 3DS BCSTM/BCWAV. Mini files require their referenced gsflib/2sflib/usflib companions and original relative folder layout. PSF formats contain one track per file and read title/game/artist/length/fade metadata; open a different file for another track. CRC, section bounds, decompression caps and dependency cycle checks apply. Keep native 3DS file extensions for decoder filename checks.
 
-GBA runs synchronized full-mix plus six isolated cores at 48kHz (pulse 1/2, wave, noise, PCM A/B). Software instruments already mixed inside PCM A/B are not separated. DS extracts actual 16-channel PCM before UI mute/final clipping from a single instrumented vio2sf core; channels are paged eight at a time. DS 44.1kHz and native USF/3DS rates share a linear 48kHz resampling clock.
+GBA runs synchronized full-mix plus six isolated cores at 48kHz (pulse 1/2, wave, noise, PCM A/B). Software instruments already mixed inside PCM A/B are not separated. DS extracts actual 16-channel PCM before UI mute/final clipping from a single instrumented vio2sf core; all channels appear together in two columns. DS 44.1kHz and native USF/3DS rates share a linear 48kHz resampling clock.
 
 N64 exposes supported Audio/NAudio dry synthesis slots plus residual effects, with stereo fallback for other mixing paths. 3DS displays stored stream channels, not individual instruments. Native PCM/DSP-ADPCM and other built-in vgmstream codecs are available; external FFmpeg/Vorbis/MP3 codecs are disabled. 3DS game ROMs, BCSAR archives, BCSEQ sequences and 3SF are not supported. These are specific music-format implementations, not a guarantee of every dump/driver/codec for each console.
 
-Originally authored ARM/MIPS music drivers and PCM/DSP-ADPCM streams test actual decoding, independent PCM, source-preserving mute, metadata, seek/end, audio device and native UI paths. Supplied GBA/N64/3DS files were checked with the limited coverage described in V1.2; see V1.1 for the supplied DS set. Complete corresponding application/core sources, modified files, pinned original archives and license texts are included. Application license: GPL-2.0-or-later.
+Originally authored ARM/MIPS music drivers and PCM/DSP-ADPCM streams test actual decoding, independent PCM, source-preserving mute, metadata, seek/end, audio device and native UI paths. Supplied GBA/N64/3DS files were checked with the limited coverage described in V1.2; see V1.1 for the supplied DS set. Complete corresponding application/core sources, modified files and pinned original archives are in the separate source ZIP. Supply both ZIPs together. Application license: GPL-2.0-or-later.
 
 ## V1.1 stability and folder playback
 
@@ -90,10 +90,17 @@ Use the normal-view Autoplay button or A key to toggle automatic advance to the 
 
 GBA PCM now uses a 16-kernel reconstruction bank selected from the actual timer sample rate. Output conversion uses 32-tap windowed-sinc interpolation with anti-alias filtering for lower rates and varispeed. The supplied Super Mario Advance 4 PCM is approximately 10,512 Hz, 8-bit; 96kHz output cannot recover missing source bandwidth. PCM A/B may already contain software-mixed instruments.
 
-N64 Audio/NAudio dry envelope slots are captured before summation and traced through interleave/save/Audio Interface DMA to preserve sample alignment. Up to 30 synthesis slots plus residual game effects are supported; unused slots remain hidden. These are synthesizer state slots, not MIDI instrument names or fixed hardware voices. Unsupported NEAD/MusyX/software paths retain final LEFT/RIGHT output. No duplicate full-mix waveforms or 30 emulation cores are used.
+N64 Audio/NAudio dry envelope slots are captured before summation and traced through interleave/save/Audio Interface DMA to preserve sample alignment. Up to 30 synthesis slots plus residual game effects are supported; V1.3 displays all declared slots immediately, including silent slots. These are synthesizer state slots, not MIDI instrument names or fixed hardware voices. Unsupported NEAD/MusyX/software paths retain final LEFT/RIGHT output. No duplicate full-mix waveforms or 30 emulation cores are used.
 
 3DS BCSTM track tables provide stereo/mono grouping, volume and pan. Mono stems are centered instead of being assigned to a single side. Stored channels cannot expose instruments already mixed together: ATHLETIC has 5 channels, MENU 8, BIG_MARIO 2.
 
 The first six seconds plus seek and mute were checked on 38 supplied N64 files, 99 3DS files and 3 GBA files. This is limited coverage, not a guarantee for every game or every position. Autoplay/folder navigation and the DS one-shot crash fix remain included. All corresponding source and GPL notices are included.
 
-Sega Master System (SMS) and Mega Drive/Genesis support is planned for V1.3 and is not included in V1.2.
+## V1.3 · 1.3.0
+
+- Added SMS and Mega Drive/Genesis VGM/VGZ playback: SMS PSG 4 voices; YM2413 expansion 9 FM + 5 drums + 4 PSG; Genesis 6 FM + DAC + 4 PSG.
+- Folder navigation and autoplay also apply to VGM/VGZ. Actual command waits determine the first-pass duration; Repeat restarts the entire file.
+- More than eight channels appear together in two columns, ordered down the left then the right. N64 slots appear before they produce sound. Unused NES DMC hiding is retained.
+- Runtime and complete corresponding source are separate: `NintendoGameMusicViewer-V1.3-Windows-x64.zip` and `NintendoGameMusicViewer-V1.3-source.zip`. Provide both when distributing under GPL. Runtime contains the executable, replaceable DLL, documentation and licenses.
+
+Supported VGM/VGZ uses single SN76489/YM2413/YM2612 chips and legacy DAC commands. Other consoles/chips, dual chips, streaming DAC commands 0x90–0x95, GYM/SGC and ROMs are not supported. Encoded/decoded files are capped at 64MiB and the first pass at one hour. The GENS FM core may sound different from real hardware. See docs/V1.3-SEGA.md in the source ZIP.

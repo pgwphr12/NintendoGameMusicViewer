@@ -1,4 +1,4 @@
-# Nintendo Game Music Viewer · V1.2 (1.2.0)
+# Nintendo Game Music Viewer · V1.3 (1.3.0)
 
 Windows용 게임 음악 플레이어와 실제 채널별 오실로스코프 뷰어입니다. 새 C++17 멀티파일 프로젝트이며 Mesen/MesenCE/기존 NTSC 프로그램의 코드를 사용하지 않습니다. 게임 ROM이나 게임 화면을 실행하는 기능은 없습니다. NSF/NSFE/SPC/GBS 음악 코어에는 음악 명령을 실행하기 위한 내부 하드웨어 모사가 들어 있습니다.
 
@@ -6,7 +6,7 @@ Windows용 게임 음악 플레이어와 실제 채널별 오실로스코프 뷰
 
 Windows 10/11 x64에서 ZIP 전체를 압축 해제하고 `NintendoGameMusicViewer.exe`를 실행합니다. `gme.dll`을 실행 파일과 같은 폴더에 두세요. .NET, Python, FFmpeg, Visual Studio, CMake는 실행에 필요 없습니다. 오디오 장치가 필요합니다.
 
-파일 열기 또는 끌어 놓기로 NSF/NSFE/SPC/GBS/GSF/2SF/USF/BCSTM/BCWAV를 엽니다. Tracks 버튼으로 내부 트랙을 고릅니다. 이름이 제공되지 않은 곡은 Track 번호로 표시합니다. 파일은 확장자가 아니라 헤더로 식별합니다.
+파일 열기 또는 끌어 놓기로 NSF/NSFE/SPC/GBS/GSF/2SF/USF/BCSTM/BCWAV/VGM/VGZ를 엽니다. Tracks 버튼으로 내부 트랙을 고릅니다. 이름이 제공되지 않은 곡은 Track 번호로 표시합니다. 파일은 확장자가 아니라 헤더로 식별합니다.
 
 | 기능 | 사용 |
 |---|---|
@@ -23,7 +23,7 @@ Windows 10/11 x64에서 ZIP 전체를 압축 해제하고 `NintendoGameMusicView
 | 녹화용 화면 | F9, 재생 조작부 숨김/복원; 음량 조절 유지 |
 | 전체 화면 | F11, Esc로 복원 |
 | 시간축 | + / - 키, 256~4096 samples |
-| 확장 채널 페이지 | PageDown / PageUp, 8개씩 표시 |
+| 많은 채널 | 9개 이상은 화면 중앙을 기준으로 두 열에 모두 표시 |
 | 출력 레이트 | 출력 버튼 → 16000 / 22050 / 32000 / 44100 / 48000 / 96000 Hz |
 
 기본 client 크기는 1280×720입니다. 1920×1080 기준으로 16:9를 유지하고 임의 크기에서는 여백을 둡니다. 파형은 검은 계열 배경의 독립적인 가로 lane으로 표시합니다. F9와 F11을 함께 사용하면 외부 녹화에 적합합니다. 내장 영상 녹화는 없습니다.
@@ -53,7 +53,7 @@ Windows 10/11 x64에서 ZIP 전체를 압축 해제하고 `NintendoGameMusicView
 
 ## GitHub Actions / 빌드
 
-이 폴더 전체를 새 GitHub 저장소 루트에 올립니다. `.github/workflows/windows.yml`은 Windows 2022 runner의 VS2022·CMake·Python 도구를 사용해 configure → build → 실제 코어/콜백 CTest → install → ZIP artifact를 생성합니다. 별도 로컬 도구 설치 없이 Actions의 `NintendoGameMusicViewer-Windows-x64` artifact를 받으세요. 이 워크플로는 준비된 구성으로 제공하며 실제 GitHub 실행은 저장소에 올린 뒤 확인해야 합니다.
+source ZIP에서 압축 해제한 소스 폴더 전체를 새 GitHub 저장소 루트에 올립니다. `.github/workflows/windows.yml`은 Windows 2022 runner의 VS2022·CMake·Python 도구를 사용해 configure → build → 실제 코어/콜백 CTest → install → ZIP artifact를 생성합니다. 별도 로컬 도구 설치 없이 Actions의 `NintendoGameMusicViewer-Windows-x64` artifact를 받으세요. 이 워크플로는 준비된 구성으로 제공하며 실제 GitHub 실행은 저장소에 올린 뒤 확인해야 합니다.
 
 의존성 upstream source ZIP을 버전·SHA256으로 고정해 third_party에 포함합니다. `latest`나 시스템 libgme 설치에 의존하지 않습니다. 로컬 소스 빌드를 원하는 경우에만 VS2022 C++ 개발 도구, CMake 3.24 이상, Python 3을 사용합니다:
 
@@ -120,9 +120,11 @@ F9 녹화뷰에서는 전체 음량만 조절할 수 있습니다. 채널별 슬
 | SNES | SPC | 8개 DSP 보이스 |
 | Game Boy | GBS | 4개 하드웨어 채널 |
 | Game Boy Advance | GSF, miniGSF | 펄스 1/2, 웨이브, 노이즈, PCM A/B |
-| Nintendo DS | 2SF, mini2SF | 16개 하드웨어 오디오 채널, 8개씩 페이지 표시 |
+| Nintendo DS | 2SF, mini2SF | 16개 하드웨어 오디오 채널, 두 열 표시 |
 | Nintendo 64 | USF, miniUSF | 지원되는 Audio/NAudio 합성 슬롯 + 게임 잔향/기타; 다른 방식은 좌우 출력 |
 | Nintendo 3DS | BCSTM, BCWAV | 파일에 저장된 오디오 채널 |
+| Sega Master System | VGM, VGZ | PSG 4채널, YM2413 확장 사용 시 18채널 |
+| Mega Drive / Genesis | VGM, VGZ | FM 6채널, DAC, PSG 4채널 |
 
 miniGSF/mini2SF/miniUSF는 `_lib`, `_lib2` 등으로 지정한 gsflib/2sflib/usflib 파일이 필요합니다. 원래 폴더 구조를 유지하세요. 라이브러리 파일 자체는 트랙으로 열지 않습니다. PSF 계열은 파일 하나가 트랙 하나이며 제목·게임·작곡자·length/fade 태그를 읽습니다. 다른 곡은 다른 음악 파일을 여세요. 파일 형식은 확장자가 아니라 헤더로 검사하지만 3DS 스트림은 디코더의 파일명 검사를 위해 원래 확장자도 유지해야 합니다. PSF 체인과 압축 데이터에 범위·CRC·순환 참조 검사가 적용됩니다.
 
@@ -130,7 +132,7 @@ GBA는 원래 믹스와 6개의 분리 코어를 같은 48kHz 시각에서 실�
 
 N64는 지원되는 Audio/NAudio 방식의 실제 envelope 합성 슬롯을 추출합니다. 슬롯은 MIDI 악기 이름이나 고정 하드웨어 채널을 뜻하지 않습니다. 게임 잔향과 추출되지 않은 성분은 별도 항목으로 유지합니다. 3DS는 파일에 저장된 오디오 채널이며 악기·노트별 신호가 아닙니다. BCSTM/BCWAV는 PCM/DSP-ADPCM 등 vgmstream의 내장 디코더를 사용하며 외부 FFmpeg/Vorbis/MP3 코덱은 빌드하지 않습니다. 3DS 게임 ROM, BCSAR 아카이브·BCSEQ 시퀀스·3SF 재생은 지원하지 않습니다. 이 표는 기종별 음악 파일 지원을 뜻하며 해당 기종의 모든 덤프·음악 드라이버·코덱 호환성을 보장하지 않습니다.
 
-자체 제작 ARM/MIPS 음악 드라이버 및 PCM/DSP-ADPCM 스트림으로 재생·분리·음소거·탐색·태그·끝·오디오 장치·화면을 검증했습니다. V1.2에서 사용자 폴더의 N64 38개·3DS 99개·GBA 3개 파일의 첫 6초 및 탐색·음소거를 검증했습니다. 모든 구간과 모든 게임을 검증한 것은 아닙니다. DS 사용자 음악 검증은 아래 V1.1 기록을 참조하세요. 전체 소스 및 GPL/LGPL/기타 라이선스와 고정된 원본 소스를 ZIP에 포함합니다.
+자체 제작 ARM/MIPS 음악 드라이버 및 PCM/DSP-ADPCM 스트림으로 재생·분리·음소거·탐색·태그·끝·오디오 장치·화면을 검증했습니다. V1.2에서 사용자 폴더의 N64 38개·3DS 99개·GBA 3개 파일의 첫 6초 및 탐색·음소거를 검증했습니다. 모든 구간과 모든 게임을 검증한 것은 아닙니다. DS 사용자 음악 검증은 아래 V1.1 기록을 참조하세요. 전체 소스 및 고정된 원본 코어는 별도 source ZIP에 포함합니다. 실행 ZIP과 source ZIP을 함께 제공하세요.
 
 ## V1.1 안정성 및 폴더 재생
 
@@ -148,8 +150,15 @@ SPC, GSF/miniGSF, 2SF/mini2SF, USF/miniUSF, BCSTM/BCWAV는 현재 파일과 같�
 
 - GBA PCM: 게임 타이머의 실제 샘플 속도에 맞춘 16개 재구성 필터로 기존 3단계 필터를 교체했습니다. 최종 출력의 선형 보간을 32-tap windowed-sinc로 개선하고 낮은 출력 레이트·고속 재생의 aliasing을 억제했습니다.
 - 제공된 Super Mario Advance 4의 PCM은 약 10,512 Hz·8비트입니다. 96kHz 출력으로 원본에서 사라진 고음 정보를 복원할 수 없습니다. PCM A/B에 이미 합쳐진 악기는 별도로 분리하지 않습니다.
-- N64: Audio/NAudio envelope의 실제 dry 합성 슬롯을 분리하고, 같은 interleave/save/Audio Interface DMA 시각을 추적합니다. 최대 30개 슬롯 및 게임 잔향/기타를 지원하며 사용된 슬롯만 화면에 표시합니다. 별도 코어 30개를 실행하거나 최종 믹스를 복제하지 않습니다. 지원되지 않는 NEAD/MusyX/소프트웨어 믹스 방식은 좌우 출력으로 남습니다.
+- N64: Audio/NAudio envelope의 실제 dry 합성 슬롯을 분리하고, 같은 interleave/save/Audio Interface DMA 시각을 추적합니다. 최대 30개 슬롯 및 게임 잔향/기타를 지원하며 V1.3에서는 사용 여부와 관계없이 모든 슬롯을 처음부터 화면에 표시합니다. 별도 코어 30개를 실행하거나 최종 믹스를 복제하지 않습니다. 지원되지 않는 NEAD/MusyX/소프트웨어 믹스 방식은 좌우 출력으로 남습니다.
 - 3DS: BCSTM track table의 stereo/mono 묶음·음량·팬을 읽습니다. 다채널 스트림의 단일 mono stem을 양쪽에 배치합니다. 원본이 2채널 최종 믹스이면 악기별 분리는 제공되지 않습니다. 예: ATHLETIC 5채널, MENU 8채널, BIG_MARIO 2채널.
 - V1.1의 자동재생 토글·폴더 재생·DS 안정성 수정을 유지합니다. 전체 수정 소스와 GPL 배포 조건은 그대로 포함합니다.
 
-SMS·메가 드라이브 지원은 V1.3 예정이며 V1.2에는 포함하지 않습니다.
+## V1.3 · 1.3.0
+
+- SMS 및 메가 드라이브/Genesis의 VGM/VGZ를 추가했습니다. SMS PSG 4채널, YM2413 FM 확장 사용 시 FM 9채널·드럼 5채널·PSG 4채널, 메가 드라이브는 FM 6채널·DAC·PSG 4채널을 표시합니다.
+- VGM/VGZ도 폴더 기준 이전·다음·자동재생을 지원합니다. 명령의 실제 대기 시간을 읽어 첫 재생 구간이 끝나면 다음 파일로 이동합니다. 반복 버튼은 파일 처음부터 다시 재생합니다.
+- 채널이 9개 이상이면 화면 중앙을 기준으로 왼쪽 위→아래, 오른쪽 위→아래 순서로 모두 표시합니다. N64 슬롯은 소리가 나기 전부터 표시하며 NES의 사용하지 않는 DMC 숨김은 유지합니다.
+- 실행 파일과 소스는 별도 ZIP입니다. `NintendoGameMusicViewer-V1.3-Windows-x64.zip`은 실행 파일·DLL·문서·라이선스만 포함하고 `NintendoGameMusicViewer-V1.3-source.zip`에 전체 소스·코어·빌드 파일·테스트가 있습니다. GPL 배포 시 두 ZIP을 함께 제공하세요.
+
+지원 범위는 SMS/메가 드라이브의 단일 SN76489·YM2413·YM2612 및 기존 DAC 명령을 사용하는 VGM/VGZ입니다. 다른 기종 VGM, 이중 칩, VGM streaming DAC 명령(0x90~0x95), GYM/SGC, ROM은 지원하지 않습니다. 압축 전후 파일은 최대 64MiB, 첫 재생 구간은 최대 1시간입니다. GENS FM 코어는 실제 칩과 음색 차이가 있을 수 있습니다. 자세한 구현은 소스 ZIP의 docs/V1.3-SEGA.md에 있습니다.

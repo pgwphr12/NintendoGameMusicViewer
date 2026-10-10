@@ -2,6 +2,7 @@
 #include "core/IMusicBackend.hpp"
 #include <gme.h>
 namespace ngmv {
+std::unique_ptr<IMusicBackend> makeVgmBackend(const std::vector<uint8_t> &bytes);
 class GmeBackend : public IMusicBackend {
     struct Delete {
         void operator()(Music_Emu *p) const {

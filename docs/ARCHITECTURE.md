@@ -22,7 +22,7 @@ Win32 네이티브 화면. 배경/텍스트는 GDI, 파형은 실제 화면 크�
 
 ## 빌드와 배포
 
-CMake + MSVC, SDL2 2.30.11(audio), libgme 0.6.5(format/voice). SHA256로 고정한 upstream source ZIP을 third_party에 포함하므로 GitHub Actions는 의존성 버전 변화나 외부 다운로드에 의존하지 않는다. LGPL libgme는 교체 가능한 별도 DLL로 배포한다. 새 코드의 라이선스는 지정하지 않는다. CTest는 자체 제작 음악 fixtures로 실제 포맷/채널/리샘플링을 검사한다. Windows GitHub Actions가 빌드·테스트·ZIP artifact를 생성한다.
+CMake + MSVC, SDL2 2.30.11(audio), libgme 0.6.5(format/voice). SHA256로 고정한 upstream source ZIP을 third_party에 포함하므로 GitHub Actions는 의존성 버전 변화나 외부 다운로드에 의존하지 않는다. LGPL libgme는 교체 가능한 별도 DLL로 배포한다. 앱 라이선스는 GPL-2.0-or-later이며 실행 ZIP과 전체 소스 ZIP을 별도로 제공한다. CTest는 자체 제작 음악 fixtures로 실제 포맷/채널/리샘플링을 검사한다. Windows GitHub Actions가 빌드·테스트·ZIP artifact를 생성한다.
 
 출력 보정: FDS +4dB / SPC +10dB, 나머지 unity. history 기록 뒤 mix만 고정 gain과 stereo-linked limiter에 통과시킨다. 내부 48kHz, instant attack, 150ms release, ceiling 0.98. seek/track/stop/file 변경 때 limiter를 reset한다. master는 device callback에서 적용한다.
 

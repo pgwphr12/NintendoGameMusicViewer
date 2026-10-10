@@ -4,7 +4,7 @@
 
 Upstream: https://github.com/libgme/game-music-emu/tree/0.6.5
 
-Used for NSF/NSFE/SPC/GBS music playback, metadata and actual voice mute/isolation APIs. Built as a separate, replaceable gme.dll with local FDS memory/bank modifications dated 2026-10-10. Complete modified files (Nsf_Emu.h, Nsf_Emu.cpp, nes_cpu_io.h) are in third_party/gme-fds-patch. third_party/apply_gme_fds.cmake checks source hashes and applies them. Modifications retain LGPL-2.1-or-later and original notices. The original archive is unchanged. Corresponding full source archive: third_party/game-music-emu-0.6.5.zip; SHA256 95444046148720dfa74ad47641dcb0232ec3e3bbd8ab5c6a013c0857da8b74bf. LGPL-2.1-or-later for the selected music-core modules; copyright Shay Green and upstream contributors. emu2413 (VRC7) uses MIT terms, copyright Mitsutaka Okazaki. Full archive retains individual notices and licenses.
+Used for NSF/NSFE/SPC/GBS/VGM music playback, metadata and actual voice mute/isolation APIs. Built as a separate, replaceable gme.dll with local FDS memory/bank modifications dated 2026-10-10. Complete modified files (Nsf_Emu.h, Nsf_Emu.cpp, nes_cpu_io.h) are in third_party/gme-fds-patch. third_party/apply_gme_fds.cmake checks source hashes and applies them. Modifications retain LGPL-2.1-or-later and original notices. The original archive is unchanged. Corresponding full source archive: third_party/game-music-emu-0.6.5.zip; SHA256 95444046148720dfa74ad47641dcb0232ec3e3bbd8ab5c6a013c0857da8b74bf. LGPL-2.1-or-later for the selected music-core modules; copyright Shay Green and upstream contributors. emu2413 (VRC7) uses MIT terms, copyright Mitsutaka Okazaki. Full archive retains individual notices and licenses.
 
 The upstream archive also contains GPL-only components (such as the alternative MAME YM2612 core); those and non-target systems are not built. The archive's GPL text is included to preserve upstream notices, the new application now separately uses GPL-2.0-or-later. Consult per-file notices when changing the supported core selection. Do not replace gme.dll with a different architecture or incompatible API. Users may rebuild and replace the LGPL library for their own modified library use.
 
@@ -26,7 +26,7 @@ DS: vio2sf/DeSmuME from https://github.com/xbmc/audiodecoder.2sf at 039eeb7de76b
 
 zlib 1.3.1: https://github.com/madler/zlib/tree/v1.3.1, zlib license. Full source third_party/zlib; original archive zlib-1.3.1.zip SHA256 50b24b47bf19e1f35d2a21ff36d2a366638cdf958219a66f30ce0861201760e6. Used by the new bounded PSF container loader.
 
-The user selected GPL-2.0-or-later for the combined application on 2026-10-10. See LICENSE. Complete corresponding application and core sources, patches, build files and notices are included in the portable ZIP. The original first V1 package predates this licensing choice.
+The user selected GPL-2.0-or-later for the combined application on 2026-10-10. See LICENSE. Complete corresponding application and core sources, patches, build files and notices are included in the separate corresponding source ZIP. The original first V1 package predates this licensing choice.
 
 ## Nintendo 64 and 3DS
 
@@ -39,3 +39,7 @@ The application CMake configuration enables UTF-8 compilation for libvgmstream a
 V1.1 modifications dated 2026-10-10: SPU_Mix in vio2sf SPU.cpp now skips the terminal one-shot fetch position before waveform capture or mixing; see docs/DS-STABILITY.md. Original upstream notices and pinned archives are retained.
 
 V1.2 modifications (2026-10-10): viogsf GBA.h/Sound.cpp use a 16-kernel source-rate PCM reconstruction bank. LazyUSF usf.h/usf.c, audio.c and rsp_hle/{hle_internal.h,alist.c,alist_audio.c,alist_naudio.c} add read-only dry envelope-slot taps and buffer/DMA observers. Original archives and licenses remain unchanged; full modified sources are included.
+
+## V1.3 Sega changes · 2026-10-10
+
+VGM is enabled with the LGPL-2.1-or-later GENS YM2612 implementation, copyright Stéphane Dallongeville and Shay Green. The alternative GPL MAME and Nuked implementations are not compiled. YM2413 uses the bundled MIT emu2413 by Mitsutaka Okazaki; licenses/emu2413-MIT.txt preserves its notice. Local LGPL interface modifications replace the empty YM2413 stub and separate SMS FM/rhythm/PSG and Genesis FM/DAC/PSG voices. Complete modified Vgm_Emu.cpp, Ym2413_Emu.cpp and Ym2413_Emu.h are in third_party/gme-sega-patch; third_party/apply_gme_sega.cmake verifies original/patched hashes. Vgm_Emu.cpp retains original notices. The original libgme archive is unchanged. The application validates VGM command/PCM bounds and decompresses VGZ using zlib. Distribute the matching source ZIP alongside the runtime ZIP; see SOURCE.md.

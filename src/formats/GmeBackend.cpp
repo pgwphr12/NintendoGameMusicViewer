@@ -42,7 +42,7 @@ GmeBackend::GmeBackend(const std::vector<uint8_t> &b, Format format) {
                 name = "FM / EXPANSION";
         } else if (format == Format::Spc)
             name = "VOICE " + std::to_string(i + 1);
-        else {
+        else if (format == Format::Gbs) {
             const char *gb[] = {"SQUARE 1", "SQUARE 2", "WAVE", "NOISE"};
             if (i < 4)
                 name = gb[i];
