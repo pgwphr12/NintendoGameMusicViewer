@@ -141,10 +141,12 @@ bool Window::open(const std::filesystem::path &p) {
     try {
         ChangingScope guard(changing_);
         auto playlist = FolderPlaylist::scan(p, identify(readMusicFile(p)));
+        rememberChannels();
         player_.open(p);
+        restoreChannels();
         file_ = p;
         SetWindowTextW(
-            hwnd_, (L"Nintendo Game Music Viewer · V1.3.1 — " + file_.filename().wstring()).c_str());
+            hwnd_, (L"Nintendo Game Music Viewer · V1.3.2 — " + file_.filename().wstring()).c_str());
         playlist_ = std::move(playlist);
 
         drag_ = -1;
@@ -162,11 +164,13 @@ void Window::selectFolder(size_t index, bool play) {
         return;
     ChangingScope guard(changing_);
     const auto path = playlist_.files[index];
+    rememberChannels();
     player_.open(path);
+    restoreChannels();
     playlist_.current = index;
     file_ = path;
     SetWindowTextW(hwnd_,
-                   (L"Nintendo Game Music Viewer · V1.3.1 — " + file_.filename().wstring()).c_str());
+                   (L"Nintendo Game Music Viewer · V1.3.2 — " + file_.filename().wstring()).c_str());
 
     drag_ = -1;
     message_.clear();
@@ -600,6 +604,50 @@ void Window::click(int x, int y) {
 Window::~Window() {
     releaseBuffer();
 }
+void Window::rememberChannels() {
+    if (!preferencesEnabled_ || !player_.loaded()) return;
+    const auto states = player_.states();
+    const auto &channels = player_.channels();
+    const std::string system = player_.tracks().empty() ? "" : player_.tracks()[0].system;
+    for (size_t i = 0; i < channels.size() && i < states.size(); ++i) {
+        auto key = desktop::Settings::channelKey(system, channels[i].name);
+        preferences_.values[key + ".volume"] = int(std::lround(states[i].volume * 100));
+        preferences_.values[key + ".mute"] = states[i].mute ? 1 : 0;
+    }
+}
+void Window::restoreChannels() {
+    if (!preferencesEnabled_ || !player_.loaded()) return;
+    const auto &channels = player_.channels();
+    const std::string system = player_.tracks().empty() ? "" : player_.tracks()[0].system;
+    for (size_t i = 0; i < channels.size(); ++i) {
+        auto key = desktop::Settings::channelKey(system, channels[i].name);
+        ChannelState state;
+        state.volume = preferences_.get(key + ".volume", 100, 0, 200) / 100.f;
+        state.mute = preferences_.get(key + ".mute", 0, 0, 1) != 0;
+        player_.channel(i, state);
+    }
+}
+void Window::savePreferences() {
+    if (!preferencesEnabled_ || changing_) return;
+    rememberChannels();
+    auto &v = preferences_.values;
+    v["master"] = int(std::lround(player_.master() * 100));
+    v["speed"] = int(std::lround(player_.speed() * 100));
+    v["speedStep"] = speedStep_; v["rate"] = player_.rate();
+    v["reverb"] = player_.reverb();
+    v["reverbAmount"] = int(std::lround(player_.reverbAmount() * 100));
+    v["reverbDecay"] = int(std::lround(player_.reverbDecay() * 10));
+    v["repeat"] = player_.repeat(); v["autoplay"] = autoplay_;
+    v["recording"] = recording_; v["windowSamples"] = windowSamples_;
+    if (!fullscreen_ && !IsIconic(hwnd_) && !IsZoomed(hwnd_)) {
+        RECT rect{}; GetClientRect(hwnd_, &rect);
+        v["width"] = rect.right; v["height"] = rect.bottom;
+    }
+    if (!fullscreen_ && !IsIconic(hwnd_)) v["maximized"] = IsZoomed(hwnd_) != FALSE;
+    auto text = preferences_.text();
+    if (text != savedPreferences_ && preferences_.save(desktop::Settings::path()))
+        savedPreferences_ = std::move(text);
+}
 void Window::releaseBuffer() {
     if (bufferDC_) {
         SelectObject(bufferDC_, bufferOld_);
@@ -816,6 +864,7 @@ LRESULT Window::event(UINT m, WPARAM a, LPARAM b) {
         return 0;
     }
     case WM_TIMER:
+        if (a == 4) { savePreferences(); return 0; }
         if (a == 3) {
             KillTimer(hwnd_, 3);
             PostMessageW(hwnd_, desktop::OpenQueuedFile, 0, 0);
@@ -914,6 +963,7 @@ LRESULT Window::event(UINT m, WPARAM a, LPARAM b) {
         return 0;
     }
     case WM_DESTROY:
+        savePreferences();
         RemovePropW(hwnd_, desktop::InstanceProperty);
         PostQuitMessage(0);
         return 0;
@@ -924,6 +974,27 @@ int Window::run(HINSTANCE instance, const std::filesystem::path &initial,
                 const std::filesystem::path &screenshot, int width, int height, bool recording, bool playInitial) {
     SetProcessDPIAware();
     recording_ = recording;
+    preferencesEnabled_ = screenshot.empty() && (!desktop::automatedSession() ||
+        GetEnvironmentVariableW(L"NGMV_SETTINGS_TEST_FILE", nullptr, 0) > 0);
+    if (preferencesEnabled_) {
+        preferences_.load(desktop::Settings::path());
+        player_.master(preferences_.get("master", 100, 0, 100) / 100.f);
+        player_.speed(preferences_.get("speed", 100, 50, 200) / 100.f);
+        speedStep_ = preferences_.get("speedStep", 10, 1, 10) == 1 ? 1 : 10;
+        player_.reverb(preferences_.get("reverb", 0, 0, 1) != 0);
+        player_.reverbAmount(preferences_.get("reverbAmount", 45, 0, 100) / 100.f);
+        player_.reverbDecay(preferences_.get("reverbDecay", 12, 1, 30) / 10.f);
+        player_.repeat(preferences_.get("repeat", 0, 0, 1) != 0);
+        autoplay_ = preferences_.get("autoplay", 1, 0, 1) != 0;
+        recording_ = recording || preferences_.get("recording", 0, 0, 1) != 0;
+        int samples = preferences_.get("windowSamples", 2048, 256, 4096);
+        if ((samples & (samples - 1)) == 0) windowSamples_ = samples;
+        width = preferences_.get("width", width, 800, 8192);
+        height = preferences_.get("height", height, 490, 8192);
+        // A previously available output rate may fail on a different device.
+        try { player_.rate(preferences_.get("rate", 96000, 16000, 96000)); }
+        catch (const std::exception &) { /* Keep the output's existing default. */ }
+    }
     WNDCLASSW wc{};
     wc.hInstance = instance;
     wc.lpszClassName = desktop::WindowClass;
@@ -934,7 +1005,7 @@ int Window::run(HINSTANCE instance, const std::filesystem::path &initial,
     RegisterClassW(&wc);
     RECT r{0, 0, width, height};
     AdjustWindowRect(&r, WS_OVERLAPPEDWINDOW, FALSE);
-    hwnd_ = CreateWindowW(wc.lpszClassName, L"Nintendo Game Music Viewer · V1.3.1",
+    hwnd_ = CreateWindowW(wc.lpszClassName, L"Nintendo Game Music Viewer · V1.3.2",
                           WS_OVERLAPPEDWINDOW, screenshot.empty() ? CW_USEDEFAULT : -20000,
                           screenshot.empty() ? CW_USEDEFAULT : -20000, r.right - r.left,
                           r.bottom - r.top, nullptr, nullptr, instance, this);
@@ -953,12 +1024,13 @@ int Window::run(HINSTANCE instance, const std::filesystem::path &initial,
                     recording_ ? L"Default apps... (F10)" : L"기본 앱 설정... (F10)");
     }
     DragAcceptFiles(hwnd_, TRUE);
-    ShowWindow(hwnd_, SW_SHOW);
+    ShowWindow(hwnd_, preferencesEnabled_ && preferences_.get("maximized", 0, 0, 1) ? SW_SHOWMAXIMIZED : SW_SHOW);
     if (!screenshot.empty()) {
         SetWindowPos(hwnd_, nullptr, 0, 0, r.right - r.left, r.bottom - r.top,
                      SWP_NOZORDER | SWP_NOMOVE);
     }
     SetTimer(hwnd_, 1, 16, nullptr);
+    if (preferencesEnabled_) SetTimer(hwnd_, 4, 1000, nullptr);
     if (!initial.empty() && open(initial) && playInitial)
         player_.play();
     if (screenshot.empty()) PostMessageW(hwnd_, desktop::AskDefaultApps, 0, 0);

@@ -1,4 +1,4 @@
-# Windows integration · V1.3.1
+# Windows integration · V1.3.2
 
 The original waveform/note artwork is in `src/app/resources/viewer.svg`, with PNG and a seven-resolution ICO. `src/app/app.rc` embeds the icon as resource 101. `Window::run` sets both window icon sizes; the EXE icon also supplies Explorer and association icons. `tools/make_icon.py` can regenerate these assets with Pillow; rebuilding the application uses the committed ICO and does not require Pillow.
 

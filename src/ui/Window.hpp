@@ -1,4 +1,5 @@
 #pragma once
+#include "app/Settings.hpp"
 #include "player/FolderPlaylist.hpp"
 #include "player/Player.hpp"
 #include <filesystem>
@@ -30,6 +31,12 @@ class Window {
     bool autoplay_ = true;
     int windowSamples_ = 2048;
     int speedStep_ = 10;
+    desktop::Settings preferences_;
+    bool preferencesEnabled_ = false;
+    std::string savedPreferences_;
+    void rememberChannels();
+    void restoreChannels();
+    void savePreferences();
     RECT oldRect_{};
     std::wstring message_ = L"";
     double scale_ = 1;
